@@ -369,9 +369,337 @@
                     setTimeout(() => {
                         addMessage('agent', '✅ Solution finalized and stored in the database for future agent training.');
                         console.log('Memory Database:', memoryDB); // Log to console to show it's working
+                        
+                        // Add manager report option
+                        setTimeout(() => {
+                            addManagerReportOption(incidentData);
+                        }, 500);
                     }, 800);
                 }
             }, 1000);
+        };
+
+        // Function to add manager report option
+        const addManagerReportOption = (incidentData) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
+
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+
+            // Create message structure
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
+
+            // Avatar
+            const avatar = document.createElement('div');
+            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
+            avatar.textContent = 'AI';
+            
+            // Content container
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('flex-1', 'min-w-0');
+
+            // Header with name and timestamp
+            const headerDiv = document.createElement('div');
+            headerDiv.classList.add('flex', 'items-baseline');
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
+            nameSpan.textContent = 'SecurityBot';
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
+            timestampSpan.textContent = 'APP ' + timestamp;
+
+            // Message content with button
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.classList.add('mt-1', 'text-slack-text');
+            
+            const messageParagraph = document.createElement('p');
+            messageParagraph.textContent = 'Would you like to generate a summary report for management?';
+            messageParagraph.classList.add('mb-3');
+
+            // Manager report button
+            const reportButton = document.createElement('button');
+            reportButton.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
+            reportButton.textContent = '📊 Generate Manager Report';
+            reportButton.addEventListener('click', () => {
+                generateManagerReport(incidentData);
+                reportButton.disabled = true;
+                reportButton.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Action buttons
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
+            
+            const emojiBtn = document.createElement('button');
+            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            emojiBtn.textContent = '😀';
+            
+            const threadBtn = document.createElement('button');
+            threadBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            threadBtn.textContent = '💬';
+            
+            const moreBtn = document.createElement('button');
+            moreBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            moreBtn.textContent = '⚡';
+
+            // Assemble the structure
+            headerDiv.appendChild(nameSpan);
+            headerDiv.appendChild(timestampSpan);
+            
+            messageContentDiv.appendChild(messageParagraph);
+            messageContentDiv.appendChild(reportButton);
+            
+            actionsDiv.appendChild(emojiBtn);
+            actionsDiv.appendChild(threadBtn);
+            actionsDiv.appendChild(moreBtn);
+            
+            contentDiv.appendChild(headerDiv);
+            contentDiv.appendChild(messageContentDiv);
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(actionsDiv);
+            
+            messageElement.appendChild(messageDiv);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+
+        // Function to generate and display manager report
+        const generateManagerReport = (incidentData) => {
+            const reportDate = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            const reportTime = new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+
+            const reportText = `SECURITY INCIDENT SUMMARY REPORT
+
+Date: ${reportDate}
+Time: ${reportTime}
+Incident ID: ${incidentData.incidentId}
+
+INCIDENT OVERVIEW
+Alert Type: Phishing Email Detection
+Initial Alert: ${incidentData.initialAlert}
+Reported By: End User
+Severity Level: Medium
+
+RESPONSE ACTIONS TAKEN
+Selected Solution: ${incidentData.selectedSolution}
+Response Time: < 2 minutes
+Status: Resolved
+
+TIMELINE
+• Alert received and analyzed
+• Security analyst reviewed incident details
+• Appropriate response action selected and executed
+• Incident logged and closed at ${new Date(incidentData.finalizedAt).toLocaleString()}
+
+IMPACT ASSESSMENT
+• No systems compromised
+• No data breach occurred
+• User was protected from potential threat
+
+RECOMMENDATION
+Incident handled according to security protocols. No further action required.
+
+Prepared by: Security Operations Team
+Report Generated: ${reportDate} at ${reportTime}`;
+
+            // Display the report as a formatted message
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
+
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+
+            // Create message structure
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
+
+            // Avatar
+            const avatar = document.createElement('div');
+            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
+            avatar.textContent = 'AI';
+            
+            // Content container
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('flex-1', 'min-w-0');
+
+            // Header
+            const headerDiv = document.createElement('div');
+            headerDiv.classList.add('flex', 'items-baseline');
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
+            nameSpan.textContent = 'SecurityBot';
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
+            timestampSpan.textContent = 'APP ' + timestamp;
+
+            // Report content with improved styling
+            const reportDiv = document.createElement('div');
+            reportDiv.classList.add('mt-3', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'p-4', 'shadow-sm');
+            
+            // Report title
+            const titleDiv = document.createElement('div');
+            titleDiv.classList.add('text-center', 'mb-4', 'pb-2', 'border-b', 'border-gray-200');
+            const titleH3 = document.createElement('h3');
+            titleH3.classList.add('text-sm', 'font-bold', 'text-gray-800', 'uppercase', 'tracking-wide');
+            titleH3.textContent = 'Security Incident Summary Report';
+            titleDiv.appendChild(titleH3);
+            
+            // Report content - using safe DOM construction
+            const reportContent = document.createElement('div');
+            reportContent.classList.add('space-y-3', 'text-xs', 'text-gray-800');
+            
+            // Basic info section
+            const createInfoRow = (label, value) => {
+                const div = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = label + ':';
+                div.appendChild(strong);
+                div.appendChild(document.createTextNode(' ' + value));
+                return div;
+            };
+            
+            const createSectionTitle = (title) => {
+                const div = document.createElement('div');
+                div.classList.add('pt-2');
+                const strong = document.createElement('strong');
+                strong.classList.add('text-gray-900');
+                strong.textContent = title;
+                div.appendChild(strong);
+                return div;
+            };
+            
+            const createList = (items) => {
+                const ul = document.createElement('ul');
+                ul.classList.add('list-disc', 'list-inside', 'ml-2', 'space-y-1');
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+                return ul;
+            };
+            
+            // Basic information
+            reportContent.appendChild(createInfoRow('Date', reportDate));
+            reportContent.appendChild(createInfoRow('Time', reportTime));
+            reportContent.appendChild(createInfoRow('Incident ID', incidentData.incidentId));
+            
+            // Incident Overview
+            reportContent.appendChild(createSectionTitle('INCIDENT OVERVIEW'));
+            reportContent.appendChild(createInfoRow('Alert Type', 'Phishing Email Detection'));
+            reportContent.appendChild(createInfoRow('Initial Alert', incidentData.initialAlert));
+            reportContent.appendChild(createInfoRow('Reported By', 'End User'));
+            reportContent.appendChild(createInfoRow('Severity Level', 'Medium'));
+            
+            // Response Actions
+            reportContent.appendChild(createSectionTitle('RESPONSE ACTIONS TAKEN'));
+            reportContent.appendChild(createInfoRow('Selected Solution', incidentData.selectedSolution));
+            reportContent.appendChild(createInfoRow('Response Time', 'under 2 minutes'));
+            reportContent.appendChild(createInfoRow('Status', 'Resolved'));
+            
+            // Timeline
+            reportContent.appendChild(createSectionTitle('TIMELINE'));
+            reportContent.appendChild(createList([
+                'Alert received and analyzed',
+                'Security analyst reviewed incident details',
+                'Appropriate response action selected and executed',
+                'Incident logged and closed at ' + new Date(incidentData.finalizedAt).toLocaleString()
+            ]));
+            
+            // Impact Assessment
+            reportContent.appendChild(createSectionTitle('IMPACT ASSESSMENT'));
+            reportContent.appendChild(createList([
+                'No systems compromised',
+                'No data breach occurred',
+                'User was protected from potential threat'
+            ]));
+            
+            // Recommendation
+            reportContent.appendChild(createSectionTitle('RECOMMENDATION'));
+            const recDiv = document.createElement('div');
+            recDiv.textContent = 'Incident handled according to security protocols. No further action required.';
+            reportContent.appendChild(recDiv);
+            
+            // Footer
+            const footerDiv = document.createElement('div');
+            footerDiv.classList.add('pt-3', 'mt-4', 'border-t', 'border-gray-200', 'text-center', 'text-xs', 'text-gray-600');
+            footerDiv.appendChild(createInfoRow('Prepared by', 'Security Operations Team'));
+            footerDiv.appendChild(createInfoRow('Report Generated', reportDate + ' at ' + reportTime));
+            reportContent.appendChild(footerDiv);
+            
+            reportDiv.appendChild(titleDiv);
+            reportDiv.appendChild(reportContent);
+
+            const copyButton = document.createElement('button');
+            copyButton.classList.add('mt-3', 'bg-green-600', 'hover:bg-green-700', 'text-white', 'text-xs', 'px-3', 'py-1', 'rounded', 'transition-colors');
+            copyButton.textContent = 'Copy Report';
+            copyButton.addEventListener('click', () => {
+                try {
+                    navigator.clipboard.writeText(reportText);
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy Report';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy report:', err);
+                    copyButton.textContent = 'Copy failed';
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy Report';
+                    }, 2000);
+                }
+            });
+
+            // Action buttons
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
+            
+            const emojiBtn = document.createElement('button');
+            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            emojiBtn.textContent = '😀';
+
+            // Assemble the structure
+            headerDiv.appendChild(nameSpan);
+            headerDiv.appendChild(timestampSpan);
+            
+            reportDiv.appendChild(reportPre);
+            reportDiv.appendChild(copyButton);
+            
+            contentDiv.appendChild(headerDiv);
+            contentDiv.appendChild(reportDiv);
+            
+            actionsDiv.appendChild(emojiBtn);
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(actionsDiv);
+            
+            messageElement.appendChild(messageDiv);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            addMessage('agent', '📊 Manager report generated successfully! You can copy the report above and send it via email or your preferred communication method.');
         };
         
         // Event listeners
