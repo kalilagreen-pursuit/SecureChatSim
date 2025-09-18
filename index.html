@@ -211,16 +211,16 @@
         // Predefined playbook for agent responses
         const playbook = {
             '1': {
-                response: 'Solution "Quarantine Email & Notify User" selected. The email has been quarantined, and an automated notification has been sent to the user. This incident is now resolved.',
+                response: 'Solution "Quarantine Email & Notify User" selected. The email has been quarantined, and an automated notification has been sent to the user.',
                 isFinal: true
             },
             '2': {
-                response: 'Solution "Dismiss as False Positive" selected. The alert has been closed. No further action will be taken.',
+                response: 'Solution "Dismiss as False Positive" selected. The alert has been marked as a false positive.',
                 isFinal: true
             },
             '3': {
                 response: 'Solution "Escalate to Tier 2" selected. The incident has been flagged for a senior analyst. Please provide additional context in the chat if needed.',
-                isFinal: true
+                isFinal: false
             },
             'default': {
                 response: 'I am not sure how to respond to that. Please select one of the provided solutions or provide more context.',
@@ -357,26 +357,160 @@
                 addMessage('agent', agentResponse);
                 
                 if (playbook[solutionId].isFinal) {
-                    // Simulate storing the final solution in the memory database
+                    // Ask for confirmation instead of automatically finalizing
                     const incidentData = {
                         incidentId: 'INC-' + Date.now(),
                         initialAlert: 'User-reported phishing email',
-                        selectedSolution: solutionText,
-                        finalizedAt: new Date().toISOString()
+                        selectedSolution: solutionText
                     };
-                    memoryDB.push(incidentData);
                     
                     setTimeout(() => {
-                        addMessage('agent', '✅ Solution finalized and stored in the database for future agent training.');
-                        console.log('Memory Database:', memoryDB); // Log to console to show it's working
-                        
-                        // Add manager report option
-                        setTimeout(() => {
-                            addManagerReportOption(incidentData);
-                        }, 500);
+                        addResolutionConfirmation(incidentData);
                     }, 800);
                 }
             }, 1000);
+        };
+
+        // Function to add resolution confirmation question
+        const addResolutionConfirmation = (incidentData) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
+
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+
+            // Create message structure
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
+
+            // Avatar
+            const avatar = document.createElement('div');
+            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
+            avatar.textContent = 'AI';
+            
+            // Content container
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('flex-1', 'min-w-0');
+
+            // Header with name and timestamp
+            const headerDiv = document.createElement('div');
+            headerDiv.classList.add('flex', 'items-baseline');
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
+            nameSpan.textContent = 'SecurityBot';
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
+            timestampSpan.textContent = 'APP ' + timestamp;
+
+            // Message content with buttons
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.classList.add('mt-1', 'text-slack-text');
+            
+            const messageParagraph = document.createElement('p');
+            messageParagraph.textContent = 'Is this incident now resolved?';
+            messageParagraph.classList.add('mb-3');
+
+            // Yes/No buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('flex', 'gap-2');
+
+            const yesButton = document.createElement('button');
+            yesButton.classList.add('bg-green-600', 'hover:bg-green-700', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
+            yesButton.textContent = '✅ Yes, Resolved';
+            yesButton.addEventListener('click', () => {
+                handleResolutionResponse(true, incidentData);
+                yesButton.disabled = true;
+                noButton.disabled = true;
+                yesButton.classList.add('opacity-50', 'cursor-not-allowed');
+                noButton.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            const noButton = document.createElement('button');
+            noButton.classList.add('bg-orange-500', 'hover:bg-orange-600', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
+            noButton.textContent = '❌ No, Needs More Action';
+            noButton.addEventListener('click', () => {
+                handleResolutionResponse(false, incidentData);
+                yesButton.disabled = true;
+                noButton.disabled = true;
+                yesButton.classList.add('opacity-50', 'cursor-not-allowed');
+                noButton.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            buttonContainer.appendChild(yesButton);
+            buttonContainer.appendChild(noButton);
+
+            // Action buttons
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
+            
+            const emojiBtn = document.createElement('button');
+            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            emojiBtn.textContent = '😀';
+            
+            const threadBtn = document.createElement('button');
+            threadBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            threadBtn.textContent = '💬';
+            
+            const moreBtn = document.createElement('button');
+            moreBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
+            moreBtn.textContent = '⚡';
+
+            // Assemble the structure
+            headerDiv.appendChild(nameSpan);
+            headerDiv.appendChild(timestampSpan);
+            
+            messageContentDiv.appendChild(messageParagraph);
+            messageContentDiv.appendChild(buttonContainer);
+            
+            actionsDiv.appendChild(emojiBtn);
+            actionsDiv.appendChild(threadBtn);
+            actionsDiv.appendChild(moreBtn);
+            
+            contentDiv.appendChild(headerDiv);
+            contentDiv.appendChild(messageContentDiv);
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(actionsDiv);
+            
+            messageElement.appendChild(messageDiv);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+
+        // Function to handle resolution response (Yes or No)
+        const handleResolutionResponse = (isResolved, incidentData) => {
+            if (isResolved) {
+                // Add analyst response
+                addMessage('analyst', '✅ Yes, Resolved');
+                
+                // Store in database and show finalization message
+                setTimeout(() => {
+                    // Update the finalized timestamp to when user confirms resolution
+                    incidentData.finalizedAt = new Date().toISOString();
+                    memoryDB.push(incidentData);
+                    addMessage('agent', '✅ Solution finalized and stored in the database for future agent training.');
+                    console.log('Memory Database:', memoryDB);
+                    
+                    // Add manager report option
+                    setTimeout(() => {
+                        addManagerReportOption(incidentData);
+                    }, 500);
+                }, 800);
+            } else {
+                // Add analyst response
+                addMessage('analyst', '❌ No, Needs More Action');
+                
+                // Ask for additional measures
+                setTimeout(() => {
+                    addMessage('agent', 'What additional measures are needed to fully resolve this incident?');
+                }, 800);
+            }
         };
 
         // Function to add manager report option
