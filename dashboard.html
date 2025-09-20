@@ -148,16 +148,36 @@
             </div>
         </div>
 
-        <!-- Active Alerts Section -->
-        <div class="bg-cortex-card border border-cortex-border rounded-lg">
-            <div class="p-6 border-b border-cortex-border">
-                <h2 class="text-xl font-semibold text-white">Active Security Alerts</h2>
-                <p class="text-cortex-muted text-sm mt-1">Monitor and respond to security incidents</p>
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Active Alerts Section -->
+            <div class="bg-cortex-card border border-cortex-border rounded-lg">
+                <div class="p-6 border-b border-cortex-border">
+                    <h2 class="text-xl font-semibold text-white">Active Security Alerts</h2>
+                    <p class="text-cortex-muted text-sm mt-1">Monitor and respond to security incidents</p>
+                </div>
+                
+                <div class="p-6">
+                    <div id="alerts-container" class="space-y-4">
+                        <!-- Alert cards will be dynamically generated here -->
+                    </div>
+                </div>
             </div>
-            
-            <div class="p-6">
-                <div id="alerts-container" class="space-y-4">
-                    <!-- Alert cards will be dynamically generated here -->
+
+            <!-- Slack Channel Section -->
+            <div id="slack-channel-container" class="bg-cortex-card border border-cortex-border rounded-lg hidden">
+                <div class="p-6 border-b border-cortex-border">
+                    <h2 class="text-xl font-semibold text-white flex items-center">
+                        <span class="mr-2 text-cortex-accent">#</span>
+                        <span>security-alerts</span>
+                    </h2>
+                    <p class="text-cortex-muted text-sm mt-1">Live delegation channel for junior analysts</p>
+                </div>
+                
+                <div class="p-6">
+                    <div id="slack-messages" class="h-96 overflow-y-auto space-y-4">
+                        <!-- Slack messages will be dynamically added here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -317,11 +337,11 @@
         // Generate alert cards
         function generateAlertCards() {
             const container = document.getElementById('alerts-container');
-            const activeAlerts = alertsData.filter(alert => alert.status === 'active');
+            const visibleAlerts = alertsData.filter(alert => alert.status === 'active' || alert.status === 'delegated');
             
             container.innerHTML = '';
             
-            activeAlerts.forEach(alert => {
+            visibleAlerts.forEach(alert => {
                 const alertCard = document.createElement('div');
                 alertCard.className = `bg-cortex-darker border ${priorityColors[alert.priority]} border-l-4 rounded-lg p-6 card-hover`;
                 alertCard.innerHTML = `
@@ -353,9 +373,9 @@
                         </div>
                     </div>
                     <div class="flex space-x-3 mt-6">
-                        <button class="flex-1 bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors delegate-btn" 
-                                data-alert-id="${alert.id}">
-                            📨 Delegate to Slack
+                        <button class="flex-1 bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors delegate-btn ${alert.status === 'delegated' ? 'opacity-50 cursor-not-allowed bg-gray-500' : ''}" 
+                                data-alert-id="${alert.id}" ${alert.status === 'delegated' ? 'disabled' : ''}>
+                            ${alert.status === 'delegated' ? '✓ Delegated to Slack' : '📨 Delegate to Slack'}
                         </button>
                         <button onclick="markAsResolved('${alert.id}')" 
                                 class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
@@ -380,6 +400,38 @@
             document.getElementById('medium-count').textContent = counts.medium;
             document.getElementById('low-count').textContent = counts.low;
             document.getElementById('resolved-count').textContent = counts.resolved;
+        }
+
+        // Post message to Slack channel
+        function postToSlack(alert) {
+            const slackChannelContainer = document.getElementById('slack-channel-container');
+            const slackMessages = document.getElementById('slack-messages');
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'flex items-start space-x-3';
+            messageElement.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-cortex-accent flex items-center justify-center text-white font-bold text-sm">🤖</div>
+                <div class="bg-gray-700 rounded-lg p-3 max-w-md">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-bold text-white">SecurityBot</span>
+                        <span class="text-xs text-gray-400">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div class="text-gray-200 text-sm">
+                        <div class="font-semibold text-red-400 mb-2">🚨 Security Alert: ${alert.title}</div>
+                        <div class="space-y-1 text-sm">
+                            <div><strong>Description:</strong> ${alert.description}</div>
+                            <div><strong>User:</strong> ${alert.user}</div>
+                            <div><strong>Device:</strong> ${alert.device}</div>
+                            <div><strong>IP:</strong> ${alert.ip}</div>
+                            <div class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-600">Alert ID: ${alert.id} • Priority: ${alert.priority.toUpperCase()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            slackMessages.appendChild(messageElement);
+            slackChannelContainer.classList.remove('hidden');
+            slackMessages.scrollTop = slackMessages.scrollHeight; // Auto-scroll to bottom
         }
 
         // Delegate to Slack function
@@ -448,36 +500,26 @@
                     }
                     
                     const finalTimeoutId = setTimeout(() => {
-                        modalTitle.textContent = 'Delegation Complete';
+                        // Post to Slack channel
+                        postToSlack(alert);
                         
-                        // Update modal body for completion
-                        const modalBody = modal.querySelector('#modal-body');
-                        if (modalBody) {
-                            modalBody.textContent = `The alert for ${alert.user} has been successfully handed off to the junior analyst in Slack with full context.`;
-                        }
-                        
-                        const finalMessage = document.createElement('div');
-                        finalMessage.className = 'text-sm text-cortex-muted mb-4';
-                        finalMessage.textContent = 'Junior analyst can now begin guided triage in Slack.';
-                        
-                        const finalStep = document.createElement('div');
-                        finalStep.className = 'flex items-center space-x-3 text-sm';
-                        finalStep.innerHTML = `
-                            <div class="w-4 h-4 bg-cortex-low rounded-full flex-shrink-0"></div>
-                            <span class="text-cortex-low font-medium">✅ Delegation completed successfully</span>
-                        `;
-                        
-                        stepsContainer.innerHTML = '';
-                        stepsContainer.appendChild(finalMessage);
-                        stepsContainer.appendChild(finalStep);
-                        
-                        // Update alert status in the list
+                        // Update alert status to delegated
                         const alertIndex = alertsData.findIndex(a => a.id === alert.id);
                         if (alertIndex !== -1) {
-                            alertsData[alertIndex].status = 'in_progress';
+                            alertsData[alertIndex].status = 'delegated';
                             updateCounters();
                             generateAlertCards();
                         }
+                        
+                        // Close modal automatically after posting to Slack
+                        setTimeout(() => {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                            
+                            // Clear any active timeouts when closing
+                            activeTimeouts.forEach(id => clearTimeout(id));
+                            activeTimeouts = [];
+                        }, 1000);
                     }, 500);
                     activeTimeouts.push(finalTimeoutId);
                 }
@@ -505,10 +547,10 @@
         // Event delegation for dynamic buttons
         document.addEventListener('click', (e) => {
             const delegateBtn = e.target.closest('.delegate-btn');
-            if (delegateBtn) {
+            if (delegateBtn && !delegateBtn.disabled) {
                 const alertId = delegateBtn.getAttribute('data-alert-id');
                 const alert = alertsData.find(a => a.id === alertId);
-                if (alert) {
+                if (alert && alert.status === 'active') {
                     delegateToSlack(alert);
                 }
             }

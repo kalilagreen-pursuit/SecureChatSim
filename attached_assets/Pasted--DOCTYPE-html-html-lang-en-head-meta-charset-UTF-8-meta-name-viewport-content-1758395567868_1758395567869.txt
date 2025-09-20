@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Alert Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Darker background */
+        }
+        .card {
+            background-color: #2d3748; /* Dark card background */
+            color: #e2e8f0;
+        }
+        /* Custom spinner for loading */
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin 2s linear infinite;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-10 text-gray-200">
+            <h1 class="text-4xl font-bold">Phishing Alert Dashboard</h1>
+            <p class="mt-2 text-gray-400">A simplified view of high-priority security incidents.</p>
+        </header>
+
+        <!-- Alert Summary Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div id="high-alert-card" class="card p-6 rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 border border-red-500">
+                <div class="text-sm font-semibold opacity-80 text-red-400">High-Level Alerts</div>
+                <div id="high-count" class="text-4xl font-bold mt-2">0</div>
+            </div>
+            <div id="medium-alert-card" class="card p-6 rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 border border-orange-500">
+                <div class="text-sm font-semibold opacity-80 text-orange-400">Medium-Level Alerts</div>
+                <div id="medium-count" class="text-4xl font-bold mt-2">0</div>
+            </div>
+            <div id="low-alert-card" class="card p-6 rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 border border-blue-500">
+                <div class="text-sm font-semibold opacity-80 text-blue-400">Low-Level Alerts</div>
+                <div id="low-count" class="text-4xl font-bold mt-2">0</div>
+            </div>
+            <div id="resolved-alert-card" class="card p-6 rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 border border-green-500">
+                <div class="text-sm font-semibold opacity-80 text-green-400">Resolved Alerts</div>
+                <div id="resolved-count" class="text-4xl font-bold mt-2">0</div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Alerts List Card -->
+            <div class="card rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-200 mb-4">Incident Feed</h2>
+                <div id="alerts-container" class="space-y-4">
+                    <!-- Alerts will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Slack-like Communication Channel -->
+            <div id="slack-channel-container" class="card rounded-xl shadow-lg p-6 hidden">
+                <h2 class="text-2xl font-semibold text-gray-200 mb-4 flex items-center">
+                    <span class="mr-2 text-blue-400">#</span>
+                    <span>security-alerts</span>
+                </h2>
+                <div id="slack-messages" class="h-96 overflow-y-auto space-y-4">
+                    <!-- Slack messages will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulated Playbook/Triage Message Box (Pop-up) -->
+        <div id="message-box" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-gray-800 rounded-lg p-8 shadow-2xl max-w-sm w-full border-t-4 border-blue-600">
+                <h3 id="message-title" class="text-2xl font-bold text-gray-100 mb-2"></h3>
+                <p id="message-body" class="text-gray-400 mb-6"></p>
+                <div id="playbook-steps" class="space-y-2 mb-6 hidden"></div>
+                <button id="close-message-box" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors hidden w-full">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const alertsContainer = document.getElementById('alerts-container');
+            const highCount = document.getElementById('high-count');
+            const mediumCount = document.getElementById('medium-count');
+            const lowCount = document.getElementById('low-count');
+            const resolvedCount = document.getElementById('resolved-count');
+            const messageBox = document.getElementById('message-box');
+            const messageTitle = document.getElementById('message-title');
+            const messageBody = document.getElementById('message-body');
+            const playbookSteps = document.getElementById('playbook-steps');
+            const closeMessageBox = document.getElementById('close-message-box');
+            const slackChannelContainer = document.getElementById('slack-channel-container');
+            const slackMessages = document.getElementById('slack-messages');
+
+            let alerts = [
+                { id: 1, level: 'High', type: 'Malware', user: 'johndoe', ip: '192.168.1.5', device: 'LAPTOP-JDOE', status: 'New', description: 'Malicious email attachment detected in user inbox.', timestamp: '10:32 AM' },
+                { id: 2, level: 'High', type: 'Suspicious Behavior', user: 'sarah.l', ip: '10.0.0.12', device: 'MOBILE-SL', status: 'New', description: 'User clicked a link in a known phishing email.', timestamp: '10:30 AM' },
+                { id: 3, level: 'Medium', type: 'PUA', user: 'mike.w', ip: '172.16.2.20', device: 'PC-MW', status: 'New', description: 'Potentially unwanted application downloaded from an untrusted site via an email link.', timestamp: '10:25 AM' },
+                { id: 4, level: 'High', type: 'Phishing', user: 'johndoe', ip: '192.168.1.5', device: 'LAPTOP-JDOE', status: 'New', description: 'Phishing email with credential-harvesting link detected.', timestamp: '10:20 AM' },
+                { id: 5, level: 'Low', type: 'Spam', user: 'jane.s', ip: '192.168.1.10', device: 'PC-JS', status: 'New', description: 'Unwanted email with marketing content received.', timestamp: '10:15 AM' },
+                { id: 6, level: 'Medium', type: 'Web Content', user: 'tim.b', ip: '10.0.0.18', device: 'SERVER-TB', status: 'New', description: 'Malicious website blocked due to a link in an email.', timestamp: '10:10 AM' },
+                { id: 7, level: 'Low', type: 'Spam', user: 'johndoe', ip: '192.168.1.5', device: 'LAPTOP-JDOE', status: 'New', description: 'Generic spam email detected.', timestamp: '10:05 AM' }
+            ];
+
+            const counts = { High: 0, Medium: 0, Low: 0, Resolved: 0 };
+
+            const renderAlerts = () => {
+                alertsContainer.innerHTML = '';
+                counts.High = 0;
+                counts.Medium = 0;
+                counts.Low = 0;
+                
+                alerts.filter(alert => alert.status !== 'Resolved').forEach(alert => {
+                    counts[alert.level]++;
+                    const colorMap = {
+                        'High': 'border-red-500 bg-red-900/10 text-red-300',
+                        'Medium': 'border-orange-500 bg-orange-900/10 text-orange-300',
+                        'Low': 'border-blue-500 bg-blue-900/10 text-blue-300'
+                    };
+                    const iconMap = {
+                        'Malware': '👾',
+                        'Suspicious Behavior': '🕵️',
+                        'PUA': '⚠️',
+                        'Phishing': '🎣',
+                        'Spam': '🗑️',
+                        'Web Content': '🌐'
+                    };
+
+                    const alertElement = document.createElement('div');
+                    alertElement.className = `flex items-center p-5 rounded-lg border-l-4 shadow-md transition-shadow duration-200 hover:shadow-xl ${colorMap[alert.level]}`;
+                    alertElement.innerHTML = `
+                        <div class="flex-shrink-0 text-4xl mr-5">${iconMap[alert.type]}</div>
+                        <div class="flex-grow">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-semibold">${alert.level} Alert: ${alert.type}</span>
+                                <span class="text-xs text-gray-500">${alert.timestamp}</span>
+                            </div>
+                            <p class="text-md mt-1 text-gray-300">${alert.description}</p>
+                            <div class="flex flex-wrap text-xs text-gray-400 mt-2 gap-x-4">
+                                <span>User: <span class="font-bold text-gray-200">${alert.user}</span></span>
+                                <span>Device: <span class="font-bold text-gray-200">${alert.device}</span></span>
+                                <span>IP: <span class="font-bold text-gray-200">${alert.ip}</span></span>
+                                <span>Status: <span class="font-bold text-gray-200">${alert.status}</span></span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col space-y-2 ml-4">
+                           <button class="triage-btn bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 ${alert.status === 'Delegated' ? 'opacity-50 cursor-not-allowed' : ''}" data-id="${alert.id}" ${alert.status === 'Delegated' ? 'disabled' : ''}>Delegate to Slack</button>
+                           <button class="resolve-btn bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500" data-id="${alert.id}">Mark as Resolved</button>
+                        </div>
+                    `;
+                    alertsContainer.appendChild(alertElement);
+                });
+
+                highCount.textContent = counts.High;
+                mediumCount.textContent = counts.Medium;
+                lowCount.textContent = counts.Low;
+            };
+
+            const updateCounts = () => {
+                const newCounts = { High: 0, Medium: 0, Low: 0, Resolved: 0 };
+                alerts.forEach(alert => {
+                    if (alert.status === 'Resolved') {
+                        newCounts.Resolved++;
+                    } else if (alert.status !== 'Delegated') {
+                        newCounts[alert.level]++;
+                    }
+                });
+                highCount.textContent = newCounts.High;
+                mediumCount.textContent = newCounts.Medium;
+                lowCount.textContent = newCounts.Low;
+                resolvedCount.textContent = newCounts.Resolved;
+            };
+
+            const postToSlack = (alert) => {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'flex items-start space-x-4';
+                messageElement.innerHTML = `
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl">🤖</div>
+                    <div class="bg-gray-700 rounded-lg p-4 max-w-sm">
+                        <div class="text-sm font-bold text-gray-200 mb-1">🚨 SecurityBot Alert Message</div>
+                        <div class="text-gray-300 text-sm">
+                            <p><strong>Alert Type:</strong> ${alert.type}</p>
+                            <p><strong>Description:</strong> ${alert.description}</p>
+                            <p><strong>User:</strong> ${alert.user}</p>
+                            <p><strong>Device:</strong> ${alert.device}</p>
+                            <p><strong>IP:</strong> ${alert.ip}</p>
+                        </div>
+                    </div>
+                `;
+                slackMessages.appendChild(messageElement);
+                slackChannelContainer.classList.remove('hidden');
+                slackMessages.scrollTop = slackMessages.scrollHeight; // Auto-scroll to the bottom
+            };
+
+            const showDelegation = (alert) => {
+                messageTitle.textContent = `Delegating ${alert.type} Alert for user: ${alert.user}`;
+                messageBody.textContent = `Alert Description: ${alert.description}`;
+                playbookSteps.innerHTML = '';
+                playbookSteps.classList.remove('hidden');
+                closeMessageBox.classList.add('hidden');
+                messageBox.classList.remove('hidden');
+
+                const steps = [
+                    `Sending alert data for ${alert.device}...`,
+                    `Generating initial playbook synopsis for ${alert.user}...`,
+                    `Pushing context to Slack channel #security-alerts...`,
+                    `AI agent ready to begin triage.`
+                ];
+
+                let stepIndex = 0;
+                const runStep = () => {
+                    if (stepIndex < steps.length) {
+                        const stepElement = document.createElement('div');
+                        stepElement.className = 'flex items-center text-gray-300';
+                        stepElement.innerHTML = `<span class="mr-2 animate-spin-slow">⏳</span> <span>${steps[stepIndex]}</span>`;
+                        playbookSteps.appendChild(stepElement);
+                        stepIndex++;
+                        setTimeout(runStep, 1000);
+                    } else {
+                        // All steps complete, now post to Slack and close pop-up
+                        postToSlack(alert);
+                        messageBox.classList.add('hidden');
+                        playbookSteps.innerHTML = '';
+                    }
+                };
+                
+                // Update alert status
+                const alertToUpdate = alerts.find(a => a.id === alert.id);
+                if (alertToUpdate) {
+                    alertToUpdate.status = 'Delegated';
+                }
+                renderAlerts();
+                updateCounts();
+
+                runStep();
+            };
+
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('triage-btn')) {
+                    const alertId = parseInt(e.target.dataset.id, 10);
+                    const alert = alerts.find(a => a.id === alertId);
+                    if (alert) {
+                        showDelegation(alert);
+                    }
+                }
+                if (e.target.classList.contains('resolve-btn')) {
+                     const alertId = parseInt(e.target.dataset.id, 10);
+                     const alertToResolve = alerts.find(a => a.id === alertId);
+                     if (alertToResolve) {
+                        alertToResolve.status = 'Resolved';
+                        renderAlerts();
+                        updateCounts();
+                     }
+                }
+            });
+
+            closeMessageBox.addEventListener('click', () => {
+                messageBox.classList.add('hidden');
+                playbookSteps.innerHTML = '';
+            });
+
+            // Initial render
+            renderAlerts();
+            updateCounts();
+        });
+    </script>
+</body>
+</html>
