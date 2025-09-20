@@ -641,17 +641,98 @@ Report generated automatically by AI Security Agent.
             }
         };
 
+        // Add SecurityBot message for delegated alerts
+        const addSecurityBotMessage = (alertData) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3';
+            messageDiv.innerHTML = `
+                <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    🚨
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-slack-text">SecurityBot</span>
+                        <span class="text-xs text-gray-500">APP</span>
+                        <span class="text-xs text-gray-500">${alertData.delegatedAt}</span>
+                    </div>
+                    <div class="mt-1">
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r">
+                            <div class="flex items-center mb-2">
+                                <span class="font-semibold text-red-700">🚨 Security Alert Delegated: ${alertData.title}</span>
+                            </div>
+                            <div class="text-sm text-red-600 space-y-1">
+                                <div><strong>Description:</strong> ${alertData.description}</div>
+                                <div><strong>Affected User:</strong> ${alertData.user}</div>
+                                <div><strong>Device:</strong> ${alertData.device}</div>
+                                <div><strong>IP Address:</strong> ${alertData.ip}</div>
+                                <div class="mt-2 pt-2 border-t border-red-200 text-xs text-gray-600">
+                                    Alert ID: ${alertData.id} • Priority: ${alertData.priority.toUpperCase()} • Delegated from Dashboard
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            This alert has been delegated by a senior analyst. Please begin incident response according to established playbooks.
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+
+        // Listen for delegated alerts from dashboard
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'delegatedAlerts' && e.newValue) {
+                const alerts = JSON.parse(e.newValue);
+                const oldAlerts = e.oldValue ? JSON.parse(e.oldValue) : [];
+                
+                // Find new alerts (ones that weren't in the old list)
+                const newAlerts = alerts.filter(alert => 
+                    !oldAlerts.some(oldAlert => oldAlert.id === alert.id)
+                );
+                
+                // Add SecurityBot messages for new alerts and track them
+                const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                newAlerts.forEach(alert => {
+                    addSecurityBotMessage(alert);
+                    displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
+                });
+                
+                // Update displayed alerts list if we added new ones
+                if (newAlerts.length > 0) {
+                    localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                }
+            }
+        });
+
+        // Check for existing delegated alerts on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Load any existing delegated alerts that haven't been displayed yet
+            const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
+            const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+            
+            const newAlerts = existingAlerts.filter(alert => 
+                !displayedAlerts.some(displayed => displayed.id === alert.id)
+            );
+            
+            newAlerts.forEach(alert => {
+                addSecurityBotMessage(alert);
+                displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
+            });
+            
+            if (newAlerts.length > 0) {
+                localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+            }
+        });
+
         // Event listeners
         sendBtn.addEventListener('click', handleChatInput);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 handleChatInput();
             }
-        });
-
-        // Auto-scroll to bottom on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
         });
     </script>
 </body>

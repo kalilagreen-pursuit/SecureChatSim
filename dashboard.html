@@ -148,10 +148,8 @@
             </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Active Alerts Section -->
-            <div class="bg-cortex-card border border-cortex-border rounded-lg">
+        <!-- Active Alerts Section -->
+        <div class="bg-cortex-card border border-cortex-border rounded-lg max-w-4xl mx-auto">
                 <div class="p-6 border-b border-cortex-border">
                     <h2 class="text-xl font-semibold text-white">Active Security Alerts</h2>
                     <p class="text-cortex-muted text-sm mt-1">Monitor and respond to security incidents</p>
@@ -163,24 +161,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Slack Channel Section -->
-            <div id="slack-channel-container" class="bg-cortex-card border border-cortex-border rounded-lg hidden">
-                <div class="p-6 border-b border-cortex-border">
-                    <h2 class="text-xl font-semibold text-white flex items-center">
-                        <span class="mr-2 text-cortex-accent">#</span>
-                        <span>security-alerts</span>
-                    </h2>
-                    <p class="text-cortex-muted text-sm mt-1">Live delegation channel for junior analysts</p>
-                </div>
-                
-                <div class="p-6">
-                    <div id="slack-messages" class="h-96 overflow-y-auto space-y-4">
-                        <!-- Slack messages will be dynamically added here -->
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
 
     <!-- Playbook Simulation Modal -->
@@ -402,36 +382,32 @@
             document.getElementById('resolved-count').textContent = counts.resolved;
         }
 
-        // Post message to Slack channel
+        // Post message to Slack channel (separate interface)
         function postToSlack(alert) {
-            const slackChannelContainer = document.getElementById('slack-channel-container');
-            const slackMessages = document.getElementById('slack-messages');
+            // Create alert data to send to Slack interface
+            const alertData = {
+                id: alert.id,
+                title: alert.title,
+                description: alert.description,
+                user: alert.user,
+                device: alert.device,
+                ip: alert.ip,
+                priority: alert.priority,
+                timestamp: new Date().toISOString(),
+                delegatedAt: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            };
             
-            const messageElement = document.createElement('div');
-            messageElement.className = 'flex items-start space-x-3';
-            messageElement.innerHTML = `
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-cortex-accent flex items-center justify-center text-white font-bold text-sm">🤖</div>
-                <div class="bg-gray-700 rounded-lg p-3 max-w-md">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-bold text-white">SecurityBot</span>
-                        <span class="text-xs text-gray-400">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    </div>
-                    <div class="text-gray-200 text-sm">
-                        <div class="font-semibold text-red-400 mb-2">🚨 Security Alert: ${alert.title}</div>
-                        <div class="space-y-1 text-sm">
-                            <div><strong>Description:</strong> ${alert.description}</div>
-                            <div><strong>User:</strong> ${alert.user}</div>
-                            <div><strong>Device:</strong> ${alert.device}</div>
-                            <div><strong>IP:</strong> ${alert.ip}</div>
-                            <div class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-600">Alert ID: ${alert.id} • Priority: ${alert.priority.toUpperCase()}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            // Store in localStorage to communicate with Slack interface
+            const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
+            existingAlerts.push(alertData);
+            localStorage.setItem('delegatedAlerts', JSON.stringify(existingAlerts));
             
-            slackMessages.appendChild(messageElement);
-            slackChannelContainer.classList.remove('hidden');
-            slackMessages.scrollTop = slackMessages.scrollHeight; // Auto-scroll to bottom
+            // Trigger storage event for cross-tab communication
+            window.dispatchEvent(new StorageEvent('storage', {
+                key: 'delegatedAlerts',
+                newValue: JSON.stringify(existingAlerts),
+                oldValue: JSON.stringify(existingAlerts.slice(0, -1))
+            }));
         }
 
         // Delegate to Slack function
