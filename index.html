@@ -594,7 +594,7 @@ Report generated automatically by AI Security Agent.
             }, 1500);
         };
 
-        // Function to handle solution selection
+        // Function to handle solution selection (enhanced for AI responses)
         const handleSolutionClick = (solutionId, solutionText) => {
             // Disable all solution buttons
             const buttons = document.querySelectorAll('button[onclick^="handleSolutionClick"]');
@@ -611,12 +611,27 @@ Report generated automatically by AI Security Agent.
                 const agentResponse = playbook[solutionId].response;
                 addMessage('agent', agentResponse);
                 
-                if (playbook[solutionId].isFinal) {
-                    // Ask for confirmation instead of automatically finalizing
+                // Handle special case for Tier 2 escalation (both original and AI)
+                if (solutionId === '3' || solutionId === 'escalate_tier2') {
+                    setTimeout(() => {
+                        addMessage('agent', '🔍 Choose Investigation Method:', [
+                            { id: '1', text: 'Deep Forensic Analysis & Containment' },
+                            { id: '2', text: 'Coordinate with Legal/Compliance Teams' },
+                            { id: '3', text: 'Initiate Emergency Response Protocol' }
+                        ]);
+                    }, 1500);
+                } else if (playbook[solutionId].isFinal) {
+                    // Create incident data based on alert type
+                    let initialAlert = 'User-reported phishing email';
+                    if (window.currentAlertData) {
+                        initialAlert = `${window.currentAlertData.title}: ${window.currentAlertData.user}`;
+                    }
+                    
                     const incidentData = {
                         incidentId: 'INC-' + Date.now(),
-                        initialAlert: 'User-reported phishing email',
-                        selectedSolution: solutionText
+                        initialAlert: initialAlert,
+                        selectedSolution: solutionText,
+                        finalizedAt: Date.now()
                     };
                     
                     setTimeout(() => {
@@ -626,6 +641,20 @@ Report generated automatically by AI Security Agent.
             }, 1000);
         };
 
+        // Enhanced playbook with AI response options
+        playbook.ai_generated = {
+            response: 'AI-generated security controls have been implemented. Automated monitoring activated for this incident. The system will track user behavior patterns and device activity for the next 24 hours.',
+            isFinal: true
+        };
+        playbook.false_positive = {
+            response: 'Alert has been marked as a false positive. The activity has been analyzed and determined to be legitimate business operations. Alert closed and excluded from future similar pattern matching.',
+            isFinal: true
+        };
+        playbook.escalate_tier2 = {
+            response: 'This incident has been escalated to a senior analyst for advanced investigation. Tier 2 response initiated.',
+            isFinal: false
+        };
+        
         // Handle chat input
         const handleChatInput = () => {
             const message = chatInput.value.trim();
@@ -641,8 +670,133 @@ Report generated automatically by AI Security Agent.
             }
         };
 
+        // AI Threat Analysis Engine
+        const analyzeThreat = (alertData) => {
+            const analysis = {
+                riskScore: 0,
+                indicators: [],
+                recommendation: '',
+                confidence: 0
+            };
+            
+            // Analyze threat indicators
+            if (alertData.title.toLowerCase().includes('malware')) {
+                analysis.riskScore += 8;
+                analysis.indicators.push('Malware detected');
+            }
+            if (alertData.title.toLowerCase().includes('suspicious login')) {
+                analysis.riskScore += 6;
+                analysis.indicators.push('Anomalous authentication pattern');
+            }
+            if (alertData.title.toLowerCase().includes('phishing')) {
+                analysis.riskScore += 7;
+                analysis.indicators.push('Email-based threat vector');
+            }
+            
+            // IP analysis
+            if (alertData.ip.startsWith('10.0.') || alertData.ip.startsWith('192.168.')) {
+                analysis.riskScore += 2;
+                analysis.indicators.push('Internal network activity');
+            } else {
+                analysis.riskScore += 4;
+                analysis.indicators.push('External IP address');
+            }
+            
+            // Priority weight
+            if (alertData.priority === 'high') {
+                analysis.riskScore += 3;
+                analysis.indicators.push('High priority classification');
+            } else if (alertData.priority === 'medium') {
+                analysis.riskScore += 2;
+            }
+            
+            // Device analysis
+            if (alertData.device.includes('LAPTOP')) {
+                analysis.riskScore += 1;
+                analysis.indicators.push('Mobile endpoint device');
+            }
+            
+            // Generate confidence score
+            analysis.confidence = Math.min(95, analysis.riskScore * 8 + Math.random() * 10);
+            
+            // Generate AI recommendation
+            if (analysis.riskScore >= 10) {
+                analysis.recommendation = `High-risk incident detected. Immediate containment recommended: isolate affected device ${alertData.device}, revoke user ${alertData.user} access temporarily, and initiate forensic analysis. Evidence suggests active threat requiring urgent response.`;
+            } else if (analysis.riskScore >= 6) {
+                analysis.recommendation = `Moderate threat detected. Recommended actions: monitor user ${alertData.user} activity closely, scan device ${alertData.device} for additional indicators, and implement additional authentication controls. Consider escalation if suspicious activity continues.`;
+            } else {
+                analysis.recommendation = `Low-risk alert with limited threat indicators. Suggested approach: verify legitimacy with user ${alertData.user}, perform basic security scan on ${alertData.device}, and document findings. May warrant dismissal if no confirming evidence found.`;
+            }
+            
+            return analysis;
+        };
+        
+        // Add AI analysis message with interactive buttons
+        const addAIAnalysisMessage = (alertData, analysis) => {
+            // Create the AI analysis message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3';
+            messageDiv.innerHTML = `
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    🤖
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-slack-text">SecurityBot</span>
+                        <span class="text-xs text-gray-500">APP</span>
+                        <span class="text-xs text-gray-500">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div class="mt-1">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r">
+                            <div class="mb-3">
+                                <span class="font-semibold text-blue-700">🔍 AI Threat Analysis Complete</span>
+                                <div class="text-xs text-blue-600 mt-1">Risk Score: ${analysis.riskScore}/15 • Confidence: ${Math.round(analysis.confidence)}%</div>
+                            </div>
+                            <div class="text-sm text-blue-600 mb-3">
+                                <div class="font-semibold mb-1">Threat Indicators:</div>
+                                <ul class="list-disc list-inside space-y-1">
+                                    ${analysis.indicators.map(indicator => `<li>${indicator}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="text-sm text-blue-800 bg-blue-100 p-3 rounded mb-3">
+                                <div class="font-semibold mb-1">AI Recommendation:</div>
+                                <div>${analysis.recommendation}</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 mt-2 border border-gray-200">
+                            <div class="text-sm text-gray-700 mb-3">
+                                Based on the threat analysis, I recommend the following response options:
+                            </div>
+                            <div class="space-y-2">
+                                <button onclick="handleSolutionClick('ai_generated', '🤖 Apply AI-Generated Response')" 
+                                        class="w-full text-left bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 transition-colors">
+                                    <div class="font-medium text-green-800">🤖 Apply AI-Generated Response</div>
+                                    <div class="text-sm text-green-600">Implement recommended security controls and monitoring</div>
+                                </button>
+                                <button onclick="handleSolutionClick('false_positive', '❌ Dismiss as False Positive')"
+                                        class="w-full text-left bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg p-3 transition-colors">
+                                    <div class="font-medium text-yellow-800">❌ Dismiss as False Positive</div>
+                                    <div class="text-sm text-yellow-600">Mark alert as benign activity and close</div>
+                                </button>
+                                <button onclick="handleSolutionClick('escalate_tier2', '⚠️ Escalate to Tier 2')"
+                                        class="w-full text-left bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg p-3 transition-colors">
+                                    <div class="font-medium text-red-800">⚠️ Escalate to Tier 2</div>
+                                    <div class="text-sm text-red-600">Requires senior analyst review and advanced response</div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        };
+        
         // Add SecurityBot message for delegated alerts
         const addSecurityBotMessage = (alertData) => {
+            // Store current alert data globally for response handling
+            window.currentAlertData = alertData;
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = 'flex items-start space-x-3';
             messageDiv.innerHTML = `
@@ -671,13 +825,19 @@ Report generated automatically by AI Security Agent.
                             </div>
                         </div>
                         <div class="mt-2 text-sm text-gray-600">
-                            This alert has been delegated by a senior analyst. Please begin incident response according to established playbooks.
+                            <span class="animate-pulse">🔄 Analyzing threat indicators...</span>
                         </div>
                     </div>
                 </div>
             `;
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Trigger AI analysis after showing the alert
+            setTimeout(() => {
+                const analysis = analyzeThreat(alertData);
+                addAIAnalysisMessage(alertData, analysis);
+            }, 2000);
         };
 
         // Listen for delegated alerts from dashboard
