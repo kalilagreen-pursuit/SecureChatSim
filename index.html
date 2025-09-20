@@ -3,849 +3,465 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cybersecurity Incident Response - Slack Style</title>
+    <title>Cybersecurity Dashboard - Cortex XDR Style</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        slack: {
-                            purple: '#4A154B',
-                            sidebar: '#3F0E40',
-                            hover: '#350D36',
-                            green: '#2D9D32',
-                            text: '#1D1C1D',
-                            light: '#F8F8F8',
-                            border: '#E1E1E1'
+                        cortex: {
+                            dark: '#0B1426',
+                            darker: '#0A1220',
+                            sidebar: '#1A2332',
+                            card: '#1E2A3A',
+                            border: '#2D3748',
+                            accent: '#3182CE',
+                            high: '#E53E3E',
+                            medium: '#FF8C00',
+                            low: '#38A169',
+                            resolved: '#4299E1',
+                            text: '#E2E8F0',
+                            muted: '#A0AEC0'
                         }
-                    },
-                    fontFamily: {
-                        slack: ['Slack-Lato', 'Lato', 'Lucida Grande', 'Lucida Sans Unicode', 'Tahoma', 'Sans-Serif'],
-                    },
+                    }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         }
         
-        .message-hover:hover {
-            background-color: #f8f8f8;
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.2s ease-in-out;
         }
         
-        .sidebar-item:hover {
-            background-color: #350D36;
+        .pulse-ring {
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         
-        .channel-active {
-            background-color: #1264A3;
-            color: white;
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.33);
+                opacity: 1;
+            }
+            80%, 100% {
+                opacity: 0;
+            }
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="h-screen overflow-hidden bg-white">
-    <!-- Main Container -->
-    <div class="flex h-full">
-        <!-- Sidebar -->
-        <div class="w-64 bg-slack-sidebar text-white flex flex-col">
-            <!-- Workspace Header -->
-            <div class="p-4 border-b border-slack-hover">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-lg font-bold text-white">SecOps Team</h1>
-                    <div class="w-3 h-3 bg-slack-green rounded-full"></div>
-                </div>
-                <div class="text-sm text-gray-300 mt-1">Security Operations</div>
+<body class="bg-cortex-dark text-cortex-text min-h-screen">
+    <!-- Header -->
+    <header class="bg-cortex-darker border-b border-cortex-border p-4">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Security Operations Center</h1>
+                <p class="text-cortex-muted text-sm">Real-time threat monitoring and response</p>
             </div>
-            
-            <!-- Channels Section -->
-            <div class="flex-1 overflow-y-auto">
-                <div class="px-4 py-2">
-                    <div class="text-gray-300 text-sm font-semibold mb-2">Channels</div>
-                    <div class="space-y-1">
-                        <div class="flex items-center px-2 py-1 rounded sidebar-item cursor-pointer channel-active">
-                            <span class="mr-2">#</span>
-                            <span class="text-sm">security-alerts</span>
-                            <div class="ml-auto w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">1</div>
-                        </div>
-                        <div class="flex items-center px-2 py-1 rounded sidebar-item cursor-pointer text-gray-300">
-                            <span class="mr-2">#</span>
-                            <span class="text-sm">incident-response</span>
-                        </div>
-                        <div class="flex items-center px-2 py-1 rounded sidebar-item cursor-pointer text-gray-300">
-                            <span class="mr-2">#</span>
-                            <span class="text-sm">threat-intel</span>
-                        </div>
-                        <div class="flex items-center px-2 py-1 rounded sidebar-item cursor-pointer text-gray-300">
-                            <span class="mr-2">#</span>
-                            <span class="text-sm">general</span>
-                        </div>
+            <div class="flex items-center space-x-4">
+                <div class="w-3 h-3 bg-cortex-low rounded-full relative">
+                    <div class="absolute inset-0 bg-cortex-low rounded-full pulse-ring"></div>
+                </div>
+                <span class="text-sm text-cortex-muted">System Online</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- Alert Counters -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-cortex-card border border-cortex-border rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-cortex-muted text-sm font-medium">High Priority</p>
+                        <p class="text-3xl font-bold text-cortex-high" id="high-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-cortex-high bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cortex-high" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
                     </div>
                 </div>
-                
-                <!-- Direct Messages Section -->
-                <div class="px-4 py-2">
-                    <div class="text-gray-300 text-sm font-semibold mb-2">Direct messages</div>
-                    <div class="space-y-1">
-                        <div class="flex items-center px-2 py-1 rounded sidebar-item cursor-pointer text-gray-300">
-                            <div class="w-6 h-6 bg-blue-500 rounded mr-2 flex items-center justify-center text-white text-xs font-bold">AI</div>
-                            <span class="text-sm">SecurityBot</span>
-                            <div class="ml-auto w-2 h-2 bg-slack-green rounded-full"></div>
-                        </div>
+            </div>
+
+            <div class="bg-cortex-card border border-cortex-border rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-cortex-muted text-sm font-medium">Medium Priority</p>
+                        <p class="text-3xl font-bold text-cortex-medium" id="medium-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-cortex-card border border-cortex-border rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-cortex-muted text-sm font-medium">Low Priority</p>
+                        <p class="text-3xl font-bold text-cortex-low" id="low-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-cortex-low bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cortex-low" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-cortex-card border border-cortex-border rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-cortex-muted text-sm font-medium">Resolved</p>
+                        <p class="text-3xl font-bold text-cortex-resolved" id="resolved-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-cortex-resolved bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cortex-resolved" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col">
-            <!-- Channel Header -->
-            <div class="bg-white border-b border-slack-border px-6 py-3 flex items-center justify-between">
-                <div class="flex items-center">
-                    <h2 class="text-xl font-bold text-slack-text flex items-center">
-                        <span class="mr-2">#</span>
-                        security-alerts
-                    </h2>
-                    <div class="ml-4 text-sm text-gray-500">
-                        <span class="mr-4">⭐ 3</span>
-                        <span>👥 12 members</span>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button class="p-2 hover:bg-gray-100 rounded">🔍</button>
-                    <button class="p-2 hover:bg-gray-100 rounded">ℹ️</button>
-                </div>
+
+        <!-- Active Alerts Section -->
+        <div class="bg-cortex-card border border-cortex-border rounded-lg">
+            <div class="p-6 border-b border-cortex-border">
+                <h2 class="text-xl font-semibold text-white">Active Security Alerts</h2>
+                <p class="text-cortex-muted text-sm mt-1">Monitor and respond to security incidents</p>
             </div>
             
-            <!-- Chat Area -->
-            <div id="chat-container" class="flex-1 overflow-y-auto bg-white">
-                <!-- Date Divider -->
-                <div class="flex items-center justify-center py-4">
-                    <div class="bg-white border border-slack-border px-4 py-1 rounded-full text-xs font-semibold text-gray-600">
-                        Today
-                    </div>
-                </div>
-                
-                <!-- Initial Agent message -->
-                <div class="px-6 py-2 message-hover group">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-9 h-9 bg-blue-500 rounded flex items-center justify-center text-white font-bold text-sm">AI</div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-baseline">
-                                <span class="font-bold text-slack-text text-sm">SecurityBot</span>
-                                <span class="ml-2 text-xs text-gray-500">APP 9:14 AM</span>
-                            </div>
-                            <div class="mt-1">
-                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-3">
-                                    <div class="flex items-center mb-2">
-                                        <span class="text-yellow-600 mr-2">⚠️</span>
-                                        <span class="font-bold text-yellow-800">Security Alert - Phishing Incident</span>
-                                    </div>
-                                    <p class="text-gray-700 mb-3">Alert triggered by a user-reported email. The email's subject is "Urgent Action Required: Password Reset". Initial analysis shows it originated from a known malicious domain. The user has not clicked any links.</p>
-                                    <p class="font-semibold text-gray-800 mb-3">What would you like to do?</p>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <button class="solution-btn bg-slack-purple hover:bg-opacity-90 text-white font-medium py-2 px-4 rounded transition-colors duration-200 text-sm" data-solution="1">
-                                        🔒 Quarantine Email & Notify User
-                                    </button>
-                                    <button class="solution-btn bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200 text-sm" data-solution="2">
-                                        ❌ Dismiss as False Positive
-                                    </button>
-                                    <button class="solution-btn bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200 text-sm" data-solution="3">
-                                        🚀 Escalate to Tier 2
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="p-1 hover:bg-gray-100 rounded text-xs">😀</button>
-                            <button class="p-1 hover:bg-gray-100 rounded text-xs">💬</button>
-                            <button class="p-1 hover:bg-gray-100 rounded text-xs">⚡</button>
-                        </div>
-                    </div>
+            <div class="p-6">
+                <div id="alerts-container" class="space-y-4">
+                    <!-- Alert cards will be dynamically generated here -->
                 </div>
             </div>
-            
-            <!-- Message Input Area -->
-            <div class="bg-white border-t border-slack-border p-4">
-                <div class="relative">
-                    <div class="border border-slack-border rounded-lg overflow-hidden">
-                        <div class="px-3 py-2 border-b border-slack-border bg-gray-50">
-                            <div class="text-sm text-gray-600">Message <strong>#security-alerts</strong></div>
-                        </div>
-                        <div class="p-3">
-                            <input 
-                                id="chat-input" 
-                                type="text" 
-                                placeholder="Type a message or question..." 
-                                class="w-full border-none outline-none resize-none text-slack-text placeholder-gray-400"
-                            >
-                        </div>
-                        <div class="px-3 py-2 bg-gray-50 border-t border-slack-border flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <button class="p-1 hover:bg-gray-200 rounded text-gray-500">📎</button>
-                                <button class="p-1 hover:bg-gray-200 rounded text-gray-500">😀</button>
-                                <button class="p-1 hover:bg-gray-200 rounded text-gray-500">@</button>
-                                <button class="p-1 hover:bg-gray-200 rounded text-gray-500">#</button>
-                            </div>
-                            <button 
-                                id="send-btn" 
-                                class="bg-slack-green hover:bg-green-700 text-white font-medium px-4 py-1 rounded text-sm transition-colors duration-200"
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </div>
+        </div>
+    </main>
+
+    <!-- Playbook Simulation Modal -->
+    <div id="playbook-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-cortex-card border border-cortex-border rounded-lg max-w-md w-full mx-4">
+            <div class="p-6 border-b border-cortex-border">
+                <h3 class="text-lg font-semibold text-white">Simulating Security Playbook</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-12 h-12 border-4 border-cortex-accent border-t-transparent rounded-full loading-spinner"></div>
                 </div>
+                <div id="playbook-steps" class="space-y-3">
+                    <!-- Playbook steps will be dynamically added here -->
+                </div>
+            </div>
+            <div class="p-6 border-t border-cortex-border">
+                <button id="close-modal" class="w-full bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                    Close
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Simple in-memory database to simulate the agent "learning"
-        const memoryDB = [];
-
-        // Predefined playbook for agent responses
-        const playbook = {
-            '1': {
-                response: 'Solution "Quarantine Email & Notify User" selected. The email has been quarantined, and an automated notification has been sent to the user.',
-                isFinal: true
+        // Alert data
+        const alertsData = [
+            {
+                id: 'ALT-001',
+                priority: 'high',
+                title: 'Suspicious Login Activity',
+                user: 'john.doe@company.com',
+                device: 'LAPTOP-JD-001',
+                ip: '192.168.1.45',
+                timestamp: '2025-09-18 09:15:32',
+                description: 'Multiple failed login attempts from unusual location',
+                status: 'active'
             },
-            '2': {
-                response: 'Solution "Dismiss as False Positive" selected. The alert has been marked as a false positive.',
-                isFinal: true
+            {
+                id: 'ALT-002',
+                priority: 'high',
+                title: 'Malware Detection',
+                user: 'sarah.smith@company.com',
+                device: 'DESKTOP-SS-002',
+                ip: '10.0.1.87',
+                timestamp: '2025-09-18 08:42:18',
+                description: 'Trojan.Win32.Agent detected in email attachment',
+                status: 'active'
             },
-            '3': {
-                response: 'Solution "Escalate to Tier 2" selected. The incident has been flagged for a senior analyst. Please provide additional context in the chat if needed.',
-                isFinal: false
+            {
+                id: 'ALT-003',
+                priority: 'high',
+                title: 'Data Exfiltration Attempt',
+                user: 'mike.johnson@company.com',
+                device: 'LAPTOP-MJ-003',
+                ip: '172.16.0.23',
+                timestamp: '2025-09-18 07:30:45',
+                description: 'Unusual large file transfer to external server',
+                status: 'active'
             },
-            'default': {
-                response: 'I am not sure how to respond to that. Please select one of the provided solutions or provide more context.',
-                isFinal: false
+            {
+                id: 'ALT-004',
+                priority: 'medium',
+                title: 'Phishing Email Detected',
+                user: 'emily.davis@company.com',
+                device: 'LAPTOP-ED-004',
+                ip: '192.168.1.156',
+                timestamp: '2025-09-18 10:22:11',
+                description: 'Email with suspicious links detected in inbox',
+                status: 'active'
+            },
+            {
+                id: 'ALT-005',
+                priority: 'medium',
+                title: 'Unauthorized Software Installation',
+                user: 'alex.brown@company.com',
+                device: 'WORKSTATION-AB-005',
+                ip: '10.0.1.234',
+                timestamp: '2025-09-18 06:45:29',
+                description: 'Non-approved software installed on corporate device',
+                status: 'active'
+            },
+            {
+                id: 'ALT-006',
+                priority: 'medium',
+                title: 'Network Anomaly',
+                user: 'lisa.wilson@company.com',
+                device: 'LAPTOP-LW-006',
+                ip: '172.16.0.78',
+                timestamp: '2025-09-18 11:08:17',
+                description: 'Unusual network traffic pattern detected',
+                status: 'active'
+            },
+            {
+                id: 'ALT-007',
+                priority: 'medium',
+                title: 'VPN Connection from Suspicious Location',
+                user: 'david.miller@company.com',
+                device: 'MOBILE-DM-007',
+                ip: '203.0.113.45',
+                timestamp: '2025-09-18 05:30:22',
+                description: 'VPN access from geographically unusual location',
+                status: 'active'
+            },
+            {
+                id: 'ALT-008',
+                priority: 'low',
+                title: 'Failed Certificate Validation',
+                user: 'system@company.com',
+                device: 'SERVER-01',
+                ip: '10.0.0.5',
+                timestamp: '2025-09-18 12:15:43',
+                description: 'SSL certificate validation failed for internal service',
+                status: 'active'
+            },
+            {
+                id: 'ALT-009',
+                priority: 'low',
+                title: 'Password Policy Violation',
+                user: 'robert.taylor@company.com',
+                device: 'LAPTOP-RT-009',
+                ip: '192.168.1.89',
+                timestamp: '2025-09-18 03:20:15',
+                description: 'User attempted to set weak password',
+                status: 'active'
+            },
+            {
+                id: 'ALT-010',
+                priority: 'low',
+                title: 'Outdated Browser Version',
+                user: 'jennifer.anderson@company.com',
+                device: 'LAPTOP-JA-010',
+                ip: '10.0.1.167',
+                timestamp: '2025-09-18 09:45:32',
+                description: 'Browser version below security threshold detected',
+                status: 'active'
             }
+        ];
+
+        // Priority colors mapping
+        const priorityColors = {
+            high: 'border-l-cortex-high bg-cortex-high bg-opacity-5',
+            medium: 'border-l-orange-500 bg-orange-500 bg-opacity-5',
+            low: 'border-l-cortex-low bg-cortex-low bg-opacity-5'
         };
 
-        const chatContainer = document.getElementById('chat-container');
-        const chatInput = document.getElementById('chat-input');
-        const sendBtn = document.getElementById('send-btn');
-        const solutionBtns = document.querySelectorAll('.solution-btn');
+        const priorityTextColors = {
+            high: 'text-cortex-high',
+            medium: 'text-orange-400',
+            low: 'text-cortex-low'
+        };
 
-        // Function to add a new message to the chat container (XSS-safe)
-        const addMessage = (sender, text) => {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
-
-            const timestamp = new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
+        // Generate alert cards
+        function generateAlertCards() {
+            const container = document.getElementById('alerts-container');
+            const activeAlerts = alertsData.filter(alert => alert.status === 'active');
+            
+            container.innerHTML = '';
+            
+            activeAlerts.forEach(alert => {
+                const alertCard = document.createElement('div');
+                alertCard.className = `bg-cortex-darker border ${priorityColors[alert.priority]} border-l-4 rounded-lg p-6 card-hover`;
+                alertCard.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="px-2 py-1 text-xs font-medium ${priorityTextColors[alert.priority]} bg-gray-700 rounded-full">
+                                    ${alert.priority.toUpperCase()}
+                                </span>
+                                <span class="text-cortex-muted text-sm">${alert.id}</span>
+                                <span class="text-cortex-muted text-sm">${alert.timestamp}</span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-white mb-2">${alert.title}</h3>
+                            <p class="text-cortex-muted text-sm mb-4">${alert.description}</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-cortex-muted">User:</span>
+                                    <span class="text-white ml-2">${alert.user}</span>
+                                </div>
+                                <div>
+                                    <span class="text-cortex-muted">Device:</span>
+                                    <span class="text-white ml-2">${alert.device}</span>
+                                </div>
+                                <div>
+                                    <span class="text-cortex-muted">IP Address:</span>
+                                    <span class="text-white ml-2">${alert.ip}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3 mt-6">
+                        <button onclick="simulatePlaybook('${alert.id}')" 
+                                class="flex-1 bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            🔧 Simulate Playbook
+                        </button>
+                        <button onclick="markAsResolved('${alert.id}')" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            ✅ Mark as Resolved
+                        </button>
+                    </div>
+                `;
+                container.appendChild(alertCard);
             });
+        }
 
-            // Create message structure using DOM methods for security
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
+        // Update counters
+        function updateCounters() {
+            const counts = {
+                high: alertsData.filter(a => a.status === 'active' && a.priority === 'high').length,
+                medium: alertsData.filter(a => a.status === 'active' && a.priority === 'medium').length,
+                low: alertsData.filter(a => a.status === 'active' && a.priority === 'low').length,
+                resolved: alertsData.filter(a => a.status === 'resolved').length
+            };
 
-            // Avatar
-            const avatar = document.createElement('div');
-            avatar.classList.add('w-9', 'h-9', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
-            
-            // Content container
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('flex-1', 'min-w-0');
+            document.getElementById('high-count').textContent = counts.high;
+            document.getElementById('medium-count').textContent = counts.medium;
+            document.getElementById('low-count').textContent = counts.low;
+            document.getElementById('resolved-count').textContent = counts.resolved;
+        }
 
-            // Header with name and timestamp
-            const headerDiv = document.createElement('div');
-            headerDiv.classList.add('flex', 'items-baseline');
+        // Simulate playbook function
+        function simulatePlaybook(alertId) {
+            const modal = document.getElementById('playbook-modal');
+            const stepsContainer = document.getElementById('playbook-steps');
             
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
             
-            const timestampSpan = document.createElement('span');
-            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
-            timestampSpan.textContent = timestamp;
-
-            // Message content
-            const messageContentDiv = document.createElement('div');
-            messageContentDiv.classList.add('mt-1', 'text-slack-text');
+            // Clear previous steps
+            stepsContainer.innerHTML = '';
             
-            const messageParagraph = document.createElement('p');
-            messageParagraph.textContent = text; // Safe text content, no HTML injection
-
-            // Action buttons
-            const actionsDiv = document.createElement('div');
-            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
+            const playbookSteps = [
+                'Initializing automated response...',
+                'Analyzing threat indicators...',
+                'Checking threat intelligence feeds...',
+                'Correlating with similar incidents...',
+                'Applying security policies...',
+                'Generating response recommendations...'
+            ];
             
-            const emojiBtn = document.createElement('button');
-            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            emojiBtn.textContent = '😀';
-            
-            const threadBtn = document.createElement('button');
-            threadBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            threadBtn.textContent = '💬';
-            
-            const moreBtn = document.createElement('button');
-            moreBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            moreBtn.textContent = '⚡';
-
-            if (sender === 'analyst') {
-                avatar.classList.add('bg-green-500');
-                avatar.textContent = 'U';
-                nameSpan.textContent = 'Security Analyst';
-            } else {
-                avatar.classList.add('bg-blue-500');
-                avatar.textContent = 'AI';
-                nameSpan.textContent = 'SecurityBot';
-                timestampSpan.textContent = 'APP ' + timestamp;
-            }
-
-            // Assemble the structure
-            headerDiv.appendChild(nameSpan);
-            headerDiv.appendChild(timestampSpan);
-            
-            messageContentDiv.appendChild(messageParagraph);
-            
-            actionsDiv.appendChild(emojiBtn);
-            actionsDiv.appendChild(threadBtn);
-            actionsDiv.appendChild(moreBtn);
-            
-            contentDiv.appendChild(headerDiv);
-            contentDiv.appendChild(messageContentDiv);
-            
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
-            messageDiv.appendChild(actionsDiv);
-            
-            messageElement.appendChild(messageDiv);
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        };
-
-        // Function to handle sending a message
-        const sendMessage = () => {
-            const message = chatInput.value.trim();
-            if (message === '') return;
-
-            addMessage('analyst', message);
-            chatInput.value = '';
-
-            // Simulate agent response
-            setTimeout(() => {
-                const response = playbook['default'].response;
-                addMessage('agent', response);
-            }, 1000);
-        };
-
-        // Function to handle solution button clicks
-        const handleSolutionClick = (event) => {
-            const solutionId = event.target.dataset.solution;
-            const solutionText = event.target.textContent.trim();
-
-            addMessage('analyst', solutionText);
-
-            // Disable buttons once a solution is selected
-            solutionBtns.forEach(btn => {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-            
-            // Simulate agent response and database update
-            setTimeout(() => {
-                const agentResponse = playbook[solutionId].response;
-                addMessage('agent', agentResponse);
-                
-                if (playbook[solutionId].isFinal) {
-                    // Ask for confirmation instead of automatically finalizing
-                    const incidentData = {
-                        incidentId: 'INC-' + Date.now(),
-                        initialAlert: 'User-reported phishing email',
-                        selectedSolution: solutionText
-                    };
+            let stepIndex = 0;
+            const addStep = () => {
+                if (stepIndex < playbookSteps.length) {
+                    const stepElement = document.createElement('div');
+                    stepElement.className = 'flex items-center space-x-3 text-sm';
+                    stepElement.innerHTML = `
+                        <div class="w-4 h-4 bg-cortex-accent rounded-full flex-shrink-0"></div>
+                        <span class="text-cortex-text">${playbookSteps[stepIndex]}</span>
+                    `;
+                    stepsContainer.appendChild(stepElement);
+                    stepIndex++;
+                    setTimeout(addStep, 800);
+                } else {
+                    // Final step - hide spinner and show completion
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) {
+                        spinner.style.display = 'none';
+                    }
                     
                     setTimeout(() => {
-                        addResolutionConfirmation(incidentData);
-                    }, 800);
-                }
-            }, 1000);
-        };
-
-        // Function to add resolution confirmation question
-        const addResolutionConfirmation = (incidentData) => {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
-
-            const timestamp = new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-
-            // Create message structure
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
-
-            // Avatar
-            const avatar = document.createElement('div');
-            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
-            avatar.textContent = 'AI';
-            
-            // Content container
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('flex-1', 'min-w-0');
-
-            // Header with name and timestamp
-            const headerDiv = document.createElement('div');
-            headerDiv.classList.add('flex', 'items-baseline');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
-            nameSpan.textContent = 'SecurityBot';
-            
-            const timestampSpan = document.createElement('span');
-            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
-            timestampSpan.textContent = 'APP ' + timestamp;
-
-            // Message content with buttons
-            const messageContentDiv = document.createElement('div');
-            messageContentDiv.classList.add('mt-1', 'text-slack-text');
-            
-            const messageParagraph = document.createElement('p');
-            messageParagraph.textContent = 'Is this incident now resolved?';
-            messageParagraph.classList.add('mb-3');
-
-            // Yes/No buttons
-            const buttonContainer = document.createElement('div');
-            buttonContainer.classList.add('flex', 'gap-2');
-
-            const yesButton = document.createElement('button');
-            yesButton.classList.add('bg-green-600', 'hover:bg-green-700', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
-            yesButton.textContent = '✅ Yes, Resolved';
-            yesButton.addEventListener('click', () => {
-                handleResolutionResponse(true, incidentData);
-                yesButton.disabled = true;
-                noButton.disabled = true;
-                yesButton.classList.add('opacity-50', 'cursor-not-allowed');
-                noButton.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-
-            const noButton = document.createElement('button');
-            noButton.classList.add('bg-orange-500', 'hover:bg-orange-600', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
-            noButton.textContent = '❌ No, Needs More Action';
-            noButton.addEventListener('click', () => {
-                handleResolutionResponse(false, incidentData);
-                yesButton.disabled = true;
-                noButton.disabled = true;
-                yesButton.classList.add('opacity-50', 'cursor-not-allowed');
-                noButton.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-
-            buttonContainer.appendChild(yesButton);
-            buttonContainer.appendChild(noButton);
-
-            // Action buttons
-            const actionsDiv = document.createElement('div');
-            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
-            
-            const emojiBtn = document.createElement('button');
-            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            emojiBtn.textContent = '😀';
-            
-            const threadBtn = document.createElement('button');
-            threadBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            threadBtn.textContent = '💬';
-            
-            const moreBtn = document.createElement('button');
-            moreBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            moreBtn.textContent = '⚡';
-
-            // Assemble the structure
-            headerDiv.appendChild(nameSpan);
-            headerDiv.appendChild(timestampSpan);
-            
-            messageContentDiv.appendChild(messageParagraph);
-            messageContentDiv.appendChild(buttonContainer);
-            
-            actionsDiv.appendChild(emojiBtn);
-            actionsDiv.appendChild(threadBtn);
-            actionsDiv.appendChild(moreBtn);
-            
-            contentDiv.appendChild(headerDiv);
-            contentDiv.appendChild(messageContentDiv);
-            
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
-            messageDiv.appendChild(actionsDiv);
-            
-            messageElement.appendChild(messageDiv);
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        };
-
-        // Function to handle resolution response (Yes or No)
-        const handleResolutionResponse = (isResolved, incidentData) => {
-            if (isResolved) {
-                // Add analyst response
-                addMessage('analyst', '✅ Yes, Resolved');
-                
-                // Store in database and show finalization message
-                setTimeout(() => {
-                    // Update the finalized timestamp to when user confirms resolution
-                    incidentData.finalizedAt = new Date().toISOString();
-                    memoryDB.push(incidentData);
-                    addMessage('agent', '✅ Solution finalized and stored in the database for future agent training.');
-                    console.log('Memory Database:', memoryDB);
-                    
-                    // Add manager report option
-                    setTimeout(() => {
-                        addManagerReportOption(incidentData);
+                        const finalStep = document.createElement('div');
+                        finalStep.className = 'flex items-center space-x-3 text-sm';
+                        finalStep.innerHTML = `
+                            <div class="w-4 h-4 bg-cortex-low rounded-full flex-shrink-0"></div>
+                            <span class="text-cortex-low font-medium">✅ Playbook simulation completed</span>
+                        `;
+                        stepsContainer.appendChild(finalStep);
                     }, 500);
-                }, 800);
-            } else {
-                // Add analyst response
-                addMessage('analyst', '❌ No, Needs More Action');
-                
-                // Ask for additional measures
-                setTimeout(() => {
-                    addMessage('agent', 'What additional measures are needed to fully resolve this incident?');
-                }, 800);
-            }
-        };
-
-        // Function to add manager report option
-        const addManagerReportOption = (incidentData) => {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
-
-            const timestamp = new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-
-            // Create message structure
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
-
-            // Avatar
-            const avatar = document.createElement('div');
-            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
-            avatar.textContent = 'AI';
-            
-            // Content container
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('flex-1', 'min-w-0');
-
-            // Header with name and timestamp
-            const headerDiv = document.createElement('div');
-            headerDiv.classList.add('flex', 'items-baseline');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
-            nameSpan.textContent = 'SecurityBot';
-            
-            const timestampSpan = document.createElement('span');
-            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
-            timestampSpan.textContent = 'APP ' + timestamp;
-
-            // Message content with button
-            const messageContentDiv = document.createElement('div');
-            messageContentDiv.classList.add('mt-1', 'text-slack-text');
-            
-            const messageParagraph = document.createElement('p');
-            messageParagraph.textContent = 'Would you like to generate a summary report for management?';
-            messageParagraph.classList.add('mb-3');
-
-            // Manager report button
-            const reportButton = document.createElement('button');
-            reportButton.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'font-medium', 'py-2', 'px-4', 'rounded', 'transition-colors', 'duration-200', 'text-sm');
-            reportButton.textContent = '📊 Generate Manager Report';
-            reportButton.addEventListener('click', () => {
-                generateManagerReport(incidentData);
-                reportButton.disabled = true;
-                reportButton.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-
-            // Action buttons
-            const actionsDiv = document.createElement('div');
-            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
-            
-            const emojiBtn = document.createElement('button');
-            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            emojiBtn.textContent = '😀';
-            
-            const threadBtn = document.createElement('button');
-            threadBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            threadBtn.textContent = '💬';
-            
-            const moreBtn = document.createElement('button');
-            moreBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            moreBtn.textContent = '⚡';
-
-            // Assemble the structure
-            headerDiv.appendChild(nameSpan);
-            headerDiv.appendChild(timestampSpan);
-            
-            messageContentDiv.appendChild(messageParagraph);
-            messageContentDiv.appendChild(reportButton);
-            
-            actionsDiv.appendChild(emojiBtn);
-            actionsDiv.appendChild(threadBtn);
-            actionsDiv.appendChild(moreBtn);
-            
-            contentDiv.appendChild(headerDiv);
-            contentDiv.appendChild(messageContentDiv);
-            
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
-            messageDiv.appendChild(actionsDiv);
-            
-            messageElement.appendChild(messageDiv);
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        };
-
-        // Function to generate and display manager report
-        const generateManagerReport = (incidentData) => {
-            const reportDate = new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            const reportTime = new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-
-            const reportText = `SECURITY INCIDENT SUMMARY REPORT
-
-Date: ${reportDate}
-Time: ${reportTime}
-Incident ID: ${incidentData.incidentId}
-
-INCIDENT OVERVIEW
-Alert Type: Phishing Email Detection
-Initial Alert: ${incidentData.initialAlert}
-Reported By: End User
-Severity Level: Medium
-
-RESPONSE ACTIONS TAKEN
-Selected Solution: ${incidentData.selectedSolution}
-Response Time: < 2 minutes
-Status: Resolved
-
-TIMELINE
-• Alert received and analyzed
-• Security analyst reviewed incident details
-• Appropriate response action selected and executed
-• Incident logged and closed at ${new Date(incidentData.finalizedAt).toLocaleString()}
-
-IMPACT ASSESSMENT
-• No systems compromised
-• No data breach occurred
-• User was protected from potential threat
-
-RECOMMENDATION
-Incident handled according to security protocols. No further action required.
-
-Prepared by: Security Operations Team
-Report Generated: ${reportDate} at ${reportTime}`;
-
-            // Display the report as a formatted message
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('px-6', 'py-2', 'message-hover', 'group');
-
-            const timestamp = new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-
-            // Create message structure
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', 'items-start', 'space-x-3');
-
-            // Avatar
-            const avatar = document.createElement('div');
-            avatar.classList.add('w-9', 'h-9', 'bg-blue-500', 'rounded', 'flex', 'items-center', 'justify-center', 'text-white', 'font-bold', 'text-sm');
-            avatar.textContent = 'AI';
-            
-            // Content container
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('flex-1', 'min-w-0');
-
-            // Header
-            const headerDiv = document.createElement('div');
-            headerDiv.classList.add('flex', 'items-baseline');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('font-bold', 'text-slack-text', 'text-sm');
-            nameSpan.textContent = 'SecurityBot';
-            
-            const timestampSpan = document.createElement('span');
-            timestampSpan.classList.add('ml-2', 'text-xs', 'text-gray-500');
-            timestampSpan.textContent = 'APP ' + timestamp;
-
-            // Report content with improved styling
-            const reportDiv = document.createElement('div');
-            reportDiv.classList.add('mt-3', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'p-4', 'shadow-sm');
-            
-            // Report title
-            const titleDiv = document.createElement('div');
-            titleDiv.classList.add('text-center', 'mb-4', 'pb-2', 'border-b', 'border-gray-200');
-            const titleH3 = document.createElement('h3');
-            titleH3.classList.add('text-sm', 'font-bold', 'text-gray-800', 'uppercase', 'tracking-wide');
-            titleH3.textContent = 'Security Incident Summary Report';
-            titleDiv.appendChild(titleH3);
-            
-            // Report content - using safe DOM construction
-            const reportContent = document.createElement('div');
-            reportContent.classList.add('space-y-3', 'text-xs', 'text-gray-800');
-            
-            // Basic info section
-            const createInfoRow = (label, value) => {
-                const div = document.createElement('div');
-                const strong = document.createElement('strong');
-                strong.textContent = label + ':';
-                div.appendChild(strong);
-                div.appendChild(document.createTextNode(' ' + value));
-                return div;
-            };
-            
-            const createSectionTitle = (title) => {
-                const div = document.createElement('div');
-                div.classList.add('pt-2');
-                const strong = document.createElement('strong');
-                strong.classList.add('text-gray-900');
-                strong.textContent = title;
-                div.appendChild(strong);
-                return div;
-            };
-            
-            const createList = (items) => {
-                const ul = document.createElement('ul');
-                ul.classList.add('list-disc', 'list-inside', 'ml-2', 'space-y-1');
-                items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.textContent = item;
-                    ul.appendChild(li);
-                });
-                return ul;
-            };
-            
-            // Basic information
-            reportContent.appendChild(createInfoRow('Date', reportDate));
-            reportContent.appendChild(createInfoRow('Time', reportTime));
-            reportContent.appendChild(createInfoRow('Incident ID', incidentData.incidentId));
-            
-            // Incident Overview
-            reportContent.appendChild(createSectionTitle('INCIDENT OVERVIEW'));
-            reportContent.appendChild(createInfoRow('Alert Type', 'Phishing Email Detection'));
-            reportContent.appendChild(createInfoRow('Initial Alert', incidentData.initialAlert));
-            reportContent.appendChild(createInfoRow('Reported By', 'End User'));
-            reportContent.appendChild(createInfoRow('Severity Level', 'Medium'));
-            
-            // Response Actions
-            reportContent.appendChild(createSectionTitle('RESPONSE ACTIONS TAKEN'));
-            reportContent.appendChild(createInfoRow('Selected Solution', incidentData.selectedSolution));
-            reportContent.appendChild(createInfoRow('Response Time', 'under 2 minutes'));
-            reportContent.appendChild(createInfoRow('Status', 'Resolved'));
-            
-            // Timeline
-            reportContent.appendChild(createSectionTitle('TIMELINE'));
-            reportContent.appendChild(createList([
-                'Alert received and analyzed',
-                'Security analyst reviewed incident details',
-                'Appropriate response action selected and executed',
-                'Incident logged and closed at ' + new Date(incidentData.finalizedAt).toLocaleString()
-            ]));
-            
-            // Impact Assessment
-            reportContent.appendChild(createSectionTitle('IMPACT ASSESSMENT'));
-            reportContent.appendChild(createList([
-                'No systems compromised',
-                'No data breach occurred',
-                'User was protected from potential threat'
-            ]));
-            
-            // Recommendation
-            reportContent.appendChild(createSectionTitle('RECOMMENDATION'));
-            const recDiv = document.createElement('div');
-            recDiv.textContent = 'Incident handled according to security protocols. No further action required.';
-            reportContent.appendChild(recDiv);
-            
-            // Footer
-            const footerDiv = document.createElement('div');
-            footerDiv.classList.add('pt-3', 'mt-4', 'border-t', 'border-gray-200', 'text-center', 'text-xs', 'text-gray-600');
-            footerDiv.appendChild(createInfoRow('Prepared by', 'Security Operations Team'));
-            footerDiv.appendChild(createInfoRow('Report Generated', reportDate + ' at ' + reportTime));
-            reportContent.appendChild(footerDiv);
-            
-            reportDiv.appendChild(titleDiv);
-            reportDiv.appendChild(reportContent);
-
-            const copyButton = document.createElement('button');
-            copyButton.classList.add('mt-3', 'bg-green-600', 'hover:bg-green-700', 'text-white', 'text-xs', 'px-3', 'py-1', 'rounded', 'transition-colors');
-            copyButton.textContent = 'Copy Report';
-            copyButton.addEventListener('click', () => {
-                try {
-                    navigator.clipboard.writeText(reportText);
-                    copyButton.textContent = 'Copied!';
-                    setTimeout(() => {
-                        copyButton.textContent = 'Copy Report';
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy report:', err);
-                    copyButton.textContent = 'Copy failed';
-                    setTimeout(() => {
-                        copyButton.textContent = 'Copy Report';
-                    }, 2000);
                 }
-            });
+            };
+            
+            setTimeout(addStep, 1000);
+        }
 
-            // Action buttons
-            const actionsDiv = document.createElement('div');
-            actionsDiv.classList.add('opacity-0', 'group-hover:opacity-100', 'transition-opacity');
-            
-            const emojiBtn = document.createElement('button');
-            emojiBtn.classList.add('p-1', 'hover:bg-gray-100', 'rounded', 'text-xs');
-            emojiBtn.textContent = '😀';
+        // Mark alert as resolved
+        function markAsResolved(alertId) {
+            const alertIndex = alertsData.findIndex(alert => alert.id === alertId);
+            if (alertIndex !== -1) {
+                alertsData[alertIndex].status = 'resolved';
+                alertsData[alertIndex].resolvedAt = new Date().toISOString();
+                
+                updateCounters();
+                generateAlertCards();
+            }
+        }
 
-            // Assemble the structure
-            headerDiv.appendChild(nameSpan);
-            headerDiv.appendChild(timestampSpan);
-            
-            reportDiv.appendChild(copyButton);
-            
-            contentDiv.appendChild(headerDiv);
-            contentDiv.appendChild(reportDiv);
-            
-            actionsDiv.appendChild(emojiBtn);
-            
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
-            messageDiv.appendChild(actionsDiv);
-            
-            messageElement.appendChild(messageDiv);
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        // Close modal
+        document.getElementById('close-modal').addEventListener('click', () => {
+            const modal = document.getElementById('playbook-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
 
-            addMessage('agent', '📊 Manager report generated successfully! You can copy the report above and send it via email or your preferred communication method.');
-        };
-        
-        // Event listeners
-        sendBtn.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                sendMessage();
+        // Close modal when clicking outside
+        document.getElementById('playbook-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'playbook-modal') {
+                const modal = document.getElementById('playbook-modal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         });
-        solutionBtns.forEach(btn => btn.addEventListener('click', handleSolutionClick));
 
-        // Auto-focus on input
-        chatInput.focus();
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCounters();
+            generateAlertCards();
+        });
     </script>
 </body>
 </html>
