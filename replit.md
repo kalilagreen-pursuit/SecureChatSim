@@ -1,8 +1,8 @@
-# Cybersecurity Incident Response - Slack Style
+# Cybersecurity Incident Response - Two-Tiered Workflow
 
 ## Overview
 
-This is a cybersecurity incident response application built with a Slack-inspired interface design. The application appears to be a conversational playbook demo that simulates security incident handling through a chat-like interface. It focuses on phishing incident management and provides an interactive environment for security teams to collaborate on incident response activities.
+This is a comprehensive cybersecurity incident response application implementing a two-tiered workflow system. The application consists of two main interfaces: a Cortex XDR-style dashboard for senior analysts and a Slack-inspired chat interface for junior analysts. The system demonstrates how senior analysts can delegate security incidents to junior analysts through automated workflows, creating an efficient hierarchical incident response process.
 
 ## User Preferences
 
