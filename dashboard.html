@@ -173,6 +173,7 @@
                 <div class="flex items-center justify-center mb-4">
                     <div class="w-12 h-12 border-4 border-cortex-accent border-t-transparent rounded-full loading-spinner"></div>
                 </div>
+                <p id="modal-body" class="text-cortex-muted mb-4">Preparing to hand off incident to junior analyst...</p>
                 <div id="playbook-steps" class="space-y-3">
                     <!-- Playbook steps will be dynamically added here -->
                 </div>
@@ -352,8 +353,8 @@
                         </div>
                     </div>
                     <div class="flex space-x-3 mt-6">
-                        <button onclick="delegateToSlack('${alert.id}')" 
-                                class="flex-1 bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        <button class="flex-1 bg-cortex-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors delegate-btn" 
+                                data-alert-id="${alert.id}">
                             📨 Delegate to Slack
                         </button>
                         <button onclick="markAsResolved('${alert.id}')" 
@@ -382,14 +383,21 @@
         }
 
         // Delegate to Slack function
-        function delegateToSlack(alertId) {
+        function delegateToSlack(alert) {
             const modal = document.getElementById('playbook-modal');
             const stepsContainer = document.getElementById('playbook-steps');
             const modalTitle = modal.querySelector('h3');
             const spinner = modal.querySelector('.loading-spinner');
             
-            // Reset modal state
-            modalTitle.textContent = 'Delegating to Slack...';
+            // Reset modal state with dynamic content
+            modalTitle.textContent = `Delegating ${alert.title} for user: ${alert.user}`;
+            
+            // Add modal body with alert description
+            const modalBody = modal.querySelector('#modal-body');
+            if (modalBody) {
+                modalBody.textContent = `Alert Description: ${alert.description}`;
+            }
+            
             stepsContainer.innerHTML = '';
             if (spinner) {
                 spinner.style.display = 'block';
@@ -398,23 +406,25 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             
-            // Update modal title
-            modalTitle.textContent = 'Delegating to Slack...';
+            // Clear any existing timeouts
+            activeTimeouts.forEach(id => clearTimeout(id));
+            activeTimeouts = [];
             
-            // Clear previous steps
+            // Clear previous steps (keep dynamic title)
             stepsContainer.innerHTML = '';
             
-            // Add initial message
+            // Add initial message with context
             const messageElement = document.createElement('div');
             messageElement.className = 'text-sm text-cortex-muted mb-4';
-            messageElement.textContent = 'A new incident has been created for your Tier 1 team. The AI agent will begin guiding them through the playbook.';
+            messageElement.textContent = `A new incident has been created for your Tier 1 team regarding ${alert.user}. The AI agent will begin guiding them through the playbook.`;
             stepsContainer.appendChild(messageElement);
             
             const delegationSteps = [
-                'Connecting to Cortex XDR...',
-                'Generating initial playbook synopsis...',
-                'Sending alert to Slack channel...',
-                'Agent now active and ready for triage.'
+                `Connecting to Cortex XDR for alert ${alert.id}...`,
+                `Generating initial playbook synopsis for ${alert.user}...`,
+                `Scanning ${alert.user}'s device (${alert.device}) for related indicators...`,
+                'Sending alert context to Slack channel #security-alerts...',
+                'AI agent now active and ready for triage.'
             ];
             
             let stepIndex = 0;
@@ -428,20 +438,27 @@
                     `;
                     stepsContainer.appendChild(stepElement);
                     stepIndex++;
-                    setTimeout(addStep, 1000);
+                    const timeoutId = setTimeout(addStep, 1000);
+                    activeTimeouts.push(timeoutId);
                 } else {
                     // Final step - hide spinner and show completion
-                    const spinner = document.querySelector('.loading-spinner');
+                    const spinner = modal.querySelector('.loading-spinner');
                     if (spinner) {
                         spinner.style.display = 'none';
                     }
                     
-                    setTimeout(() => {
+                    const finalTimeoutId = setTimeout(() => {
                         modalTitle.textContent = 'Delegation Complete';
+                        
+                        // Update modal body for completion
+                        const modalBody = modal.querySelector('#modal-body');
+                        if (modalBody) {
+                            modalBody.textContent = `The alert for ${alert.user} has been successfully handed off to the junior analyst in Slack with full context.`;
+                        }
                         
                         const finalMessage = document.createElement('div');
                         finalMessage.className = 'text-sm text-cortex-muted mb-4';
-                        finalMessage.textContent = 'The alert has been successfully handed off to the junior analyst in Slack.';
+                        finalMessage.textContent = 'Junior analyst can now begin guided triage in Slack.';
                         
                         const finalStep = document.createElement('div');
                         finalStep.className = 'flex items-center space-x-3 text-sm';
@@ -455,17 +472,19 @@
                         stepsContainer.appendChild(finalStep);
                         
                         // Update alert status in the list
-                        const alertIndex = alertsData.findIndex(alert => alert.id === alertId);
+                        const alertIndex = alertsData.findIndex(a => a.id === alert.id);
                         if (alertIndex !== -1) {
                             alertsData[alertIndex].status = 'in_progress';
                             updateCounters();
                             generateAlertCards();
                         }
                     }, 500);
+                    activeTimeouts.push(finalTimeoutId);
                 }
             };
             
-            setTimeout(addStep, 1000);
+            const initialTimeoutId = setTimeout(addStep, 1000);
+            activeTimeouts.push(initialTimeoutId);
         }
 
         // Mark alert as resolved
@@ -480,6 +499,21 @@
             }
         }
 
+        // Store active timeouts for cleanup
+        let activeTimeouts = [];
+        
+        // Event delegation for dynamic buttons
+        document.addEventListener('click', (e) => {
+            const delegateBtn = e.target.closest('.delegate-btn');
+            if (delegateBtn) {
+                const alertId = delegateBtn.getAttribute('data-alert-id');
+                const alert = alertsData.find(a => a.id === alertId);
+                if (alert) {
+                    delegateToSlack(alert);
+                }
+            }
+        });
+        
         // Close modal
         document.getElementById('close-modal').addEventListener('click', () => {
             const modal = document.getElementById('playbook-modal');
@@ -487,8 +521,16 @@
             const modalTitle = modal.querySelector('h3');
             const stepsContainer = document.getElementById('playbook-steps');
             
+            // Clear any active timeouts
+            activeTimeouts.forEach(id => clearTimeout(id));
+            activeTimeouts = [];
+            
             // Reset modal state for next use
             modalTitle.textContent = 'Delegating to Slack...';
+            const modalBody = modal.querySelector('#modal-body');
+            if (modalBody) {
+                modalBody.textContent = 'Preparing to hand off incident to junior analyst...';
+            }
             stepsContainer.innerHTML = '';
             if (spinner) {
                 spinner.style.display = 'block';
@@ -506,8 +548,16 @@
                 const modalTitle = modal.querySelector('h3');
                 const stepsContainer = document.getElementById('playbook-steps');
                 
+                // Clear any active timeouts
+                activeTimeouts.forEach(id => clearTimeout(id));
+                activeTimeouts = [];
+                
                 // Reset modal state for next use
                 modalTitle.textContent = 'Delegating to Slack...';
+                const modalBody = modal.querySelector('#modal-body');
+                if (modalBody) {
+                    modalBody.textContent = 'Preparing to hand off incident to junior analyst...';
+                }
                 stepsContainer.innerHTML = '';
                 if (spinner) {
                     spinner.style.display = 'block';
