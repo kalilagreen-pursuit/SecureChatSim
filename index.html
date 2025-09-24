@@ -499,31 +499,138 @@
             addMessage('agent', '📊 Generating manager report...');
             
             setTimeout(() => {
+                // Get the actual alert data from the incident
+                const alertData = incidentData.initialAlert || window.currentAlertData;
+                
+                // Generate threat-specific analysis based on alert type
+                const getThreatAnalysis = (alert) => {
+                    if (!alert) return {
+                        threatType: 'Unknown Threat',
+                        severity: 'Medium',
+                        summary: 'Security incident was detected and resolved.',
+                        impact: 'Limited impact assessment available.',
+                        nextSteps: ['Continue monitoring', 'Review security policies']
+                    };
+                    
+                    const analysis = analyzeThreat(alert);
+                    let threatType = 'Security Incident';
+                    let summary = '';
+                    let impact = '';
+                    let nextSteps = [];
+                    
+                    // Threat-specific analysis based on alert title and description
+                    if (alert.title?.includes('Suspicious Login') || alert.description?.includes('login')) {
+                        threatType = 'Suspicious Authentication Activity';
+                        summary = `Multiple unauthorized login attempts detected from ${alert.ip} targeting user ${alert.user}. The incident involved ${analysis.indicators.length} threat indicators with a risk score of ${analysis.riskScore}/15.`;
+                        impact = `User account security potentially compromised. Device ${alert.device} may require additional security controls.`;
+                        nextSteps = [
+                            'Force password reset for affected user',
+                            'Enable MFA on the account',
+                            'Monitor for additional suspicious activity',
+                            'Review access logs for the past 30 days',
+                            'Block suspicious IP addresses'
+                        ];
+                    } else if (alert.title?.includes('Data Exfiltration') || alert.description?.includes('file transfer')) {
+                        threatType = 'Data Exfiltration Attempt';
+                        summary = `Unauthorized data transfer detected from device ${alert.device} to external server. User ${alert.user} initiated unusual large file transfers with risk score ${analysis.riskScore}/15.`;
+                        impact = `Potential data breach. Sensitive company information may have been compromised. External IP ${alert.ip} involved in unauthorized data access.`;
+                        nextSteps = [
+                            'Immediate network isolation of affected device',
+                            'Forensic analysis of transferred files',
+                            'Review user access privileges',
+                            'Notify legal and compliance teams',
+                            'Implement additional DLP controls'
+                        ];
+                    } else if (alert.title?.includes('Phishing') || alert.description?.includes('email')) {
+                        threatType = 'Phishing Email Attack';
+                        summary = `Malicious email campaign detected targeting ${alert.user}. The incident shows ${analysis.indicators.length} threat indicators with confidence level of ${Math.round(analysis.confidence)}%.`;
+                        impact = `Email security bypass detected. User credentials and corporate data at risk of compromise.`;
+                        nextSteps = [
+                            'Block sender domains and IPs',
+                            'Remove malicious emails from all mailboxes',
+                            'Security awareness training for affected users',
+                            'Update email security policies',
+                            'Monitor for credential harvesting attempts'
+                        ];
+                    } else if (alert.title?.includes('Malware') || alert.description?.includes('malware')) {
+                        threatType = 'Malware Detection';
+                        summary = `Malicious software detected on device ${alert.device} operated by ${alert.user}. AI analysis identified ${analysis.indicators.length} malware indicators.`;
+                        impact = `System compromise detected. Device isolation required to prevent lateral movement within the network.`;
+                        nextSteps = [
+                            'Immediate device quarantine',
+                            'Full system scan and cleanup',
+                            'Restore from clean backup if necessary',
+                            'Update antivirus signatures',
+                            'Review network traffic for IOCs'
+                        ];
+                    } else {
+                        // Generic threat analysis
+                        summary = `Security incident "${alert.title}" was detected affecting user ${alert.user} on device ${alert.device}. AI analysis revealed ${analysis.indicators.length} threat indicators with risk score ${analysis.riskScore}/15.`;
+                        impact = `Security event with ${alert.priority.toUpperCase()} priority requiring immediate attention. Source IP: ${alert.ip}`;
+                        nextSteps = [
+                            'Continue monitoring affected systems',
+                            'Review security controls',
+                            'Update threat detection rules',
+                            'Conduct post-incident review'
+                        ];
+                    }
+                    
+                    return {
+                        threatType,
+                        severity: alert.priority?.toUpperCase() || 'MEDIUM',
+                        summary,
+                        impact,
+                        nextSteps
+                    };
+                };
+                
+                const threatAnalysis = getThreatAnalysis(alertData);
+                const responseTime = incidentData.responseTime || '< 5 minutes';
+                const analystName = incidentData.analystName || 'Security Analyst';
+                
                 const reportContent = `
 **SECURITY INCIDENT REPORT**
 
 **Incident Details:**
 - Incident ID: ${incidentData.incidentId}
-- Alert Type: ${incidentData.initialAlert}
+- Alert Type: ${threatAnalysis.threatType}
+- Alert Source: ${alertData?.title || 'Security Monitoring System'}
 - Resolution: ${incidentData.selectedSolution}
+- Priority Level: ${threatAnalysis.severity}
 - Status: Resolved
+- Analyst: ${analystName}
+- Response Time: ${responseTime}
 - Finalized: ${new Date(incidentData.finalizedAt).toLocaleString()}
 
-**Summary:**
-A phishing email incident was detected and successfully resolved using automated security playbooks. The selected solution "${incidentData.selectedSolution}" was implemented and confirmed effective by the security analyst.
+**Threat Summary:**
+${threatAnalysis.summary}
 
-**Impact:**
-- Threat Level: High
-- User Affected: john.doe@company.com
-- Response Time: < 5 minutes
-- Status: Contained and Resolved
+**Impact Assessment:**
+${threatAnalysis.impact}
 
-**Next Steps:**
-- Monitor for similar patterns
-- Update security awareness training
-- Review email security policies
+**Technical Details:**
+- Affected User: ${alertData?.user || 'Unknown'}
+- Device: ${alertData?.device || 'Unknown'}
+- Source IP: ${alertData?.ip || 'Unknown'}
+- Detection Time: ${alertData?.delegatedAt || new Date().toLocaleTimeString()}
+- AI Confidence Score: ${alertData ? Math.round(analyzeThreat(alertData).confidence) : 'N/A'}%
 
-Report generated automatically by AI Security Agent.
+**Response Actions Taken:**
+✅ Incident detected and triaged by AI Security Agent
+✅ Threat analysis completed with risk assessment
+✅ Security playbook executed: "${incidentData.selectedSolution}"
+✅ Incident contained and resolved
+✅ Post-incident monitoring activated
+
+**Recommended Next Steps:**
+${threatAnalysis.nextSteps.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+
+**Compliance Notes:**
+- Incident properly documented per security policy
+- Response time met SLA requirements
+- All actions logged for audit trail
+
+Report generated automatically by AI Security Agent on ${new Date().toLocaleString()}.
                 `.trim();
                 
                 // Create report message with copy functionality
@@ -846,28 +953,17 @@ Report generated automatically by AI Security Agent.
                 const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
                 const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
                 
-                console.log('Checking for alerts:', {
-                    existingAlerts: existingAlerts.length,
-                    displayedAlerts: displayedAlerts.length,
-                    existingAlertsData: existingAlerts,
-                    displayedAlertsData: displayedAlerts
-                });
-                
                 const newAlerts = existingAlerts.filter(alert => 
                     !displayedAlerts.some(displayed => displayed.id === alert.id)
                 );
                 
-                console.log('New alerts found:', newAlerts.length, newAlerts);
-                
                 if (newAlerts.length > 0) {
-                    console.log('Adding SecurityBot messages for new alerts');
                     newAlerts.forEach(alert => {
                         addSecurityBotMessage(alert);
                         displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
                     });
                     
                     localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
-                    console.log('Updated displayedAlerts:', displayedAlerts);
                 }
             } catch (error) {
                 console.error('Error checking for new alerts:', error);

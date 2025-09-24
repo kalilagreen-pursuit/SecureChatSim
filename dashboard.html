@@ -397,14 +397,10 @@
                 delegatedAt: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
             
-            console.log('Delegating alert to Slack:', alertData);
-            
             // Store in localStorage to communicate with Slack interface
             const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
             existingAlerts.push(alertData);
             localStorage.setItem('delegatedAlerts', JSON.stringify(existingAlerts));
-            
-            console.log('Updated delegatedAlerts in localStorage:', existingAlerts);
             
             // Trigger storage event for cross-tab communication
             window.dispatchEvent(new StorageEvent('storage', {
@@ -412,8 +408,6 @@
                 newValue: JSON.stringify(existingAlerts),
                 oldValue: JSON.stringify(existingAlerts.slice(0, -1))
             }));
-            
-            console.log('Dispatched storage event for cross-tab communication');
         }
 
         // Delegate to Slack function
