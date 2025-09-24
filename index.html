@@ -840,7 +840,30 @@ Report generated automatically by AI Security Agent.
             }, 2000);
         };
 
-        // Listen for delegated alerts from dashboard
+        // Function to check for new delegated alerts
+        function checkForNewAlerts() {
+            try {
+                const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
+                const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                
+                const newAlerts = existingAlerts.filter(alert => 
+                    !displayedAlerts.some(displayed => displayed.id === alert.id)
+                );
+                
+                if (newAlerts.length > 0) {
+                    newAlerts.forEach(alert => {
+                        addSecurityBotMessage(alert);
+                        displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
+                    });
+                    
+                    localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                }
+            } catch (error) {
+                console.error('Error checking for new alerts:', error);
+            }
+        }
+
+        // Listen for delegated alerts from dashboard (for cross-tab communication)
         window.addEventListener('storage', (e) => {
             if (e.key === 'delegatedAlerts' && e.newValue) {
                 const alerts = JSON.parse(e.newValue);
@@ -865,26 +888,15 @@ Report generated automatically by AI Security Agent.
             }
         });
 
+        // Poll for new alerts every 2 seconds (for same-tab navigation)
+        setInterval(checkForNewAlerts, 2000);
+
         // Check for existing delegated alerts on page load
         document.addEventListener('DOMContentLoaded', () => {
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
-            // Load any existing delegated alerts that haven't been displayed yet
-            const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
-            const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
-            
-            const newAlerts = existingAlerts.filter(alert => 
-                !displayedAlerts.some(displayed => displayed.id === alert.id)
-            );
-            
-            newAlerts.forEach(alert => {
-                addSecurityBotMessage(alert);
-                displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
-            });
-            
-            if (newAlerts.length > 0) {
-                localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
-            }
+            // Check for alerts immediately on page load
+            checkForNewAlerts();
         });
 
         // Event listeners
