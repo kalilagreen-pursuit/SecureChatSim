@@ -397,10 +397,14 @@
                 delegatedAt: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
             
+            console.log('Delegating alert to Slack:', alertData);
+            
             // Store in localStorage to communicate with Slack interface
             const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
             existingAlerts.push(alertData);
             localStorage.setItem('delegatedAlerts', JSON.stringify(existingAlerts));
+            
+            console.log('Updated delegatedAlerts in localStorage:', existingAlerts);
             
             // Trigger storage event for cross-tab communication
             window.dispatchEvent(new StorageEvent('storage', {
@@ -408,6 +412,8 @@
                 newValue: JSON.stringify(existingAlerts),
                 oldValue: JSON.stringify(existingAlerts.slice(0, -1))
             }));
+            
+            console.log('Dispatched storage event for cross-tab communication');
         }
 
         // Delegate to Slack function
@@ -519,6 +525,19 @@
 
         // Store active timeouts for cleanup
         let activeTimeouts = [];
+
+        // Cache clearing function
+        function clearCache() {
+            localStorage.removeItem('delegatedAlerts');
+            localStorage.removeItem('displayedAlerts');
+            console.log('Cache cleared - all localStorage data removed');
+            alert('Cache cleared! You can now test delegation again.');
+        }
+
+        // Clear cache if URL contains ?clearCache=true
+        if (window.location.search.includes('clearCache=true')) {
+            clearCache();
+        }
         
         // Event delegation for dynamic buttons
         document.addEventListener('click', (e) => {

@@ -846,17 +846,28 @@ Report generated automatically by AI Security Agent.
                 const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
                 const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
                 
+                console.log('Checking for alerts:', {
+                    existingAlerts: existingAlerts.length,
+                    displayedAlerts: displayedAlerts.length,
+                    existingAlertsData: existingAlerts,
+                    displayedAlertsData: displayedAlerts
+                });
+                
                 const newAlerts = existingAlerts.filter(alert => 
                     !displayedAlerts.some(displayed => displayed.id === alert.id)
                 );
                 
+                console.log('New alerts found:', newAlerts.length, newAlerts);
+                
                 if (newAlerts.length > 0) {
+                    console.log('Adding SecurityBot messages for new alerts');
                     newAlerts.forEach(alert => {
                         addSecurityBotMessage(alert);
                         displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
                     });
                     
                     localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                    console.log('Updated displayedAlerts:', displayedAlerts);
                 }
             } catch (error) {
                 console.error('Error checking for new alerts:', error);
@@ -891,10 +902,24 @@ Report generated automatically by AI Security Agent.
         // Poll for new alerts every 2 seconds (for same-tab navigation)
         setInterval(checkForNewAlerts, 2000);
 
+        // Cache clearing function
+        function clearCache() {
+            localStorage.removeItem('delegatedAlerts');
+            localStorage.removeItem('displayedAlerts');
+            console.log('Cache cleared - all localStorage data removed');
+            alert('Cache cleared! Please test the delegation again.');
+        }
+
+        // Clear cache if URL contains ?clearCache=true
+        if (window.location.search.includes('clearCache=true')) {
+            clearCache();
+        }
+
         // Check for existing delegated alerts on page load
         document.addEventListener('DOMContentLoaded', () => {
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
+            console.log('Page loaded - checking for alerts');
             // Check for alerts immediately on page load
             checkForNewAlerts();
         });
