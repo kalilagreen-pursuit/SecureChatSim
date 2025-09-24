@@ -1020,23 +1020,44 @@ Report generated automatically by AI Security Agent on ${new Date().toLocaleStri
             }, 2000);
         };
 
-        // Function to check for new delegated alerts
+        // Enhanced function to check for new delegated alerts
         function checkForNewAlerts() {
             try {
                 const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
                 const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                const lastDelegationTime = localStorage.getItem('lastDelegationTime');
+                
+                console.log(`Checking alerts - Found ${existingAlerts.length} total, ${displayedAlerts.length} already displayed`);
                 
                 const newAlerts = existingAlerts.filter(alert => 
                     !displayedAlerts.some(displayed => displayed.id === alert.id)
                 );
                 
                 if (newAlerts.length > 0) {
+                    console.log(`Processing ${newAlerts.length} new alerts:`, newAlerts);
+                    
                     newAlerts.forEach(alert => {
                         addSecurityBotMessage(alert);
                         displayedAlerts.push({ id: alert.id, timestamp: alert.timestamp });
                     });
                     
                     localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                    
+                    // Update badge count
+                    const badge = document.querySelector('.bg-red-500');
+                    if (badge) {
+                        const currentCount = parseInt(badge.textContent) || 0;
+                        badge.textContent = currentCount + newAlerts.length;
+                    }
+                    
+                    console.log(`Successfully added ${newAlerts.length} alerts to security-alerts channel`);
+                } else if (lastDelegationTime) {
+                    const timeSince = Date.now() - parseInt(lastDelegationTime);
+                    if (timeSince < 5000) { // If delegation happened in last 5 seconds
+                        console.log('Recent delegation detected, force checking all storage');
+                        // Sometimes storage events don't fire properly, force check
+                        setTimeout(() => checkForNewAlerts(), 500);
+                    }
                 }
             } catch (error) {
                 console.error('Error checking for new alerts:', error);
@@ -1070,6 +1091,34 @@ Report generated automatically by AI Security Agent on ${new Date().toLocaleStri
 
         // Poll for new alerts every 2 seconds (for same-tab navigation)
         setInterval(checkForNewAlerts, 2000);
+        
+        // Listen for custom delegation events (for same-tab communication)
+        window.addEventListener('alertDelegated', (e) => {
+            console.log('🔔 Custom delegation event received:', e.detail);
+            if (e.detail) {
+                addSecurityBotMessage(e.detail);
+                
+                // Mark as displayed
+                const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                displayedAlerts.push({ id: e.detail.id, timestamp: e.detail.timestamp });
+                localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+            }
+        });
+        
+        // Listen for postMessage events (cross-iframe communication)
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'ALERT_DELEGATED') {
+                console.log('📬 PostMessage delegation received:', e.data.payload);
+                if (e.data.payload) {
+                    addSecurityBotMessage(e.data.payload);
+                    
+                    // Mark as displayed
+                    const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                    displayedAlerts.push({ id: e.data.payload.id, timestamp: e.data.payload.timestamp });
+                    localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                }
+            }
+        });
 
         // Cache clearing function
         function clearCache() {
@@ -1084,13 +1133,51 @@ Report generated automatically by AI Security Agent on ${new Date().toLocaleStri
             clearCache();
         }
 
-        // Check for existing delegated alerts on page load
+        // Enhanced check for existing delegated alerts on page load
         document.addEventListener('DOMContentLoaded', () => {
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
             console.log('Page loaded - checking for alerts');
+            
             // Check for alerts immediately on page load
-            checkForNewAlerts();
+            setTimeout(() => {
+                checkForNewAlerts();
+                console.log('Initial alert check completed');
+            }, 100);
+            
+            // Also check for incidents from memory database 
+            const memoryDatabase = JSON.parse(localStorage.getItem('incidentMemory') || '[]');
+            console.log('Memory Database:', memoryDatabase);
+            
+            // Convert incidents to delegated alerts if they haven't been processed
+            memoryDatabase.forEach(incident => {
+                if (incident.finalizedAt && incident.initialAlert) {
+                    const alertData = {
+                        id: incident.incidentId || `alert-${Date.now()}`,
+                        title: incident.initialAlert,
+                        description: `Incident finalized with solution: ${incident.selectedSolution}`,
+                        user: 'System User',
+                        device: 'Various Systems',
+                        ip: '192.168.1.100',
+                        priority: 'medium',
+                        timestamp: incident.finalizedAt,
+                        delegatedAt: new Date(incident.finalizedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    };
+                    
+                    // Check if this incident has already been shown
+                    const displayedAlerts = JSON.parse(localStorage.getItem('displayedAlerts') || '[]');
+                    const alreadyDisplayed = displayedAlerts.some(displayed => displayed.id === alertData.id);
+                    
+                    if (!alreadyDisplayed) {
+                        console.log('Adding incident to security-alerts:', alertData);
+                        addSecurityBotMessage(alertData);
+                        
+                        // Mark as displayed
+                        displayedAlerts.push({ id: alertData.id, timestamp: alertData.timestamp });
+                        localStorage.setItem('displayedAlerts', JSON.stringify(displayedAlerts));
+                    }
+                }
+            });
         });
 
         // Event listeners

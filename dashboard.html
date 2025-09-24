@@ -382,7 +382,7 @@
             document.getElementById('resolved-count').textContent = counts.resolved;
         }
 
-        // Post message to Slack channel (separate interface)
+        // Enhanced post message to Slack channel (separate interface)
         function postToSlack(alert) {
             // Create alert data to send to Slack interface
             const alertData = {
@@ -397,17 +397,50 @@
                 delegatedAt: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
             
+            console.log('🚀 Delegating alert to #security-alerts:', alertData);
+            
             // Store in localStorage to communicate with Slack interface
             const existingAlerts = JSON.parse(localStorage.getItem('delegatedAlerts') || '[]');
-            existingAlerts.push(alertData);
-            localStorage.setItem('delegatedAlerts', JSON.stringify(existingAlerts));
             
-            // Trigger storage event for cross-tab communication
-            window.dispatchEvent(new StorageEvent('storage', {
-                key: 'delegatedAlerts',
-                newValue: JSON.stringify(existingAlerts),
-                oldValue: JSON.stringify(existingAlerts.slice(0, -1))
-            }));
+            // Check if alert already exists to prevent duplicates
+            const alreadyExists = existingAlerts.some(existing => existing.id === alert.id);
+            if (!alreadyExists) {
+                existingAlerts.push(alertData);
+                localStorage.setItem('delegatedAlerts', JSON.stringify(existingAlerts));
+                
+                // Set delegation timestamp for polling mechanism
+                localStorage.setItem('lastDelegationTime', Date.now().toString());
+                
+                console.log(`✅ Alert stored in localStorage. Total delegated alerts: ${existingAlerts.length}`);
+                
+                // Trigger storage event for cross-tab communication
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'delegatedAlerts',
+                    newValue: JSON.stringify(existingAlerts),
+                    oldValue: JSON.stringify(existingAlerts.slice(0, -1))
+                }));
+                
+                // Additional events for better cross-interface communication
+                try {
+                    // Custom event for same-tab navigation
+                    window.dispatchEvent(new CustomEvent('alertDelegated', { 
+                        detail: alertData 
+                    }));
+                    
+                    // Force trigger for immediate detection
+                    window.postMessage({
+                        type: 'ALERT_DELEGATED',
+                        payload: alertData
+                    }, '*');
+                    
+                    console.log('🔔 Delegation events dispatched successfully');
+                } catch (error) {
+                    console.error('Error dispatching delegation events:', error);
+                }
+                
+            } else {
+                console.log('⚠️ Alert already delegated, skipping duplicate');
+            }
         }
 
         // Delegate to Slack function
@@ -524,8 +557,40 @@
         function clearCache() {
             localStorage.removeItem('delegatedAlerts');
             localStorage.removeItem('displayedAlerts');
+            localStorage.removeItem('lastDelegationTime');
             console.log('Cache cleared - all localStorage data removed');
             alert('Cache cleared! You can now test delegation again.');
+        }
+        
+        // Test delegation function for debugging
+        function testDelegation() {
+            const testAlert = {
+                id: `test-${Date.now()}`,
+                title: 'Test Alert - Delegation System Check',
+                description: 'This is a test alert to verify the delegation system is working properly.',
+                user: 'test.user',
+                device: 'TEST-LAPTOP-001',
+                ip: '192.168.1.50',
+                priority: 'medium',
+                status: 'active'
+            };
+            
+            console.log('🧪 Testing delegation system with test alert:', testAlert);
+            
+            // Simulate delegation process
+            postToSlack(testAlert);
+            
+            // Mark as delegated
+            const alertIndex = alertsData.findIndex(a => a.id === testAlert.id);
+            if (alertIndex === -1) {
+                alertsData.push(testAlert);
+            }
+            alertsData[alertsData.findIndex(a => a.id === testAlert.id)].status = 'delegated';
+            
+            updateCounters();
+            generateAlertCards();
+            
+            alert('Test delegation sent! Check the #security-alerts channel.');
         }
 
         // Clear cache if URL contains ?clearCache=true
