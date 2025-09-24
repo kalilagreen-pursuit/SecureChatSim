@@ -518,6 +518,60 @@
                     let impact = '';
                     let nextSteps = [];
                     
+                    // Handle string alert data (from legacy incident storage)
+                    if (typeof alert === 'string') {
+                        const alertText = alert.toLowerCase();
+                        
+                        if (alertText.includes('suspicious login') || alertText.includes('login')) {
+                            threatType = 'Suspicious Authentication Activity';
+                            summary = `Authentication security incident detected. Multiple failed login attempts identified with risk score of ${analysis.riskScore}/15.`;
+                            impact = `User account security potentially compromised. Additional security controls recommended.`;
+                            nextSteps = [
+                                'Force password reset for affected user',
+                                'Enable MFA on the account',
+                                'Monitor for additional suspicious activity',
+                                'Review access logs for the past 30 days'
+                            ];
+                        } else if (alertText.includes('data exfiltration') || alertText.includes('file transfer')) {
+                            threatType = 'Data Exfiltration Attempt';
+                            summary = `Data security incident detected. Unauthorized file transfer activity identified with risk score ${analysis.riskScore}/15.`;
+                            impact = `Potential data breach. Sensitive company information may have been compromised.`;
+                            nextSteps = [
+                                'Immediate network isolation of affected systems',
+                                'Forensic analysis of transferred files',
+                                'Review user access privileges',
+                                'Notify legal and compliance teams'
+                            ];
+                        } else if (alertText.includes('certificate') || alertText.includes('validation')) {
+                            threatType = 'Certificate Validation Failure';
+                            summary = `SSL/TLS certificate validation failure detected. Security certificate issue identified with risk score ${analysis.riskScore}/15.`;
+                            impact = `Encrypted communication integrity compromised. Man-in-the-middle attacks possible.`;
+                            nextSteps = [
+                                'Verify certificate validity and renewal status',
+                                'Check certificate chain integrity',
+                                'Update certificate authorities if needed',
+                                'Monitor for additional certificate issues'
+                            ];
+                        } else {
+                            summary = `Security incident "${alert}" was detected. AI analysis revealed risk score ${analysis.riskScore}/15.`;
+                            impact = `Security event requiring attention. Incident classified and responded to appropriately.`;
+                            nextSteps = [
+                                'Continue monitoring affected systems',
+                                'Review security controls',
+                                'Update threat detection rules',
+                                'Conduct post-incident review'
+                            ];
+                        }
+                        
+                        return {
+                            threatType,
+                            severity: 'MEDIUM',
+                            summary,
+                            impact,
+                            nextSteps
+                        };
+                    }
+                    
                     // Threat-specific analysis based on alert title and description
                     if (alert.title?.includes('Suspicious Login') || alert.description?.includes('login')) {
                         threatType = 'Suspicious Authentication Activity';
@@ -786,39 +840,58 @@ Report generated automatically by AI Security Agent on ${new Date().toLocaleStri
                 confidence: 0
             };
             
+            // Handle cases where alertData might be missing or incomplete
+            if (!alertData || typeof alertData === 'string') {
+                analysis.riskScore = 5;
+                analysis.confidence = 60;
+                analysis.indicators = ['Limited threat data available'];
+                analysis.recommendation = 'Incident assessment based on limited available data. Standard security protocols applied.';
+                return analysis;
+            }
+            
+            // Safely get properties with fallbacks
+            const title = (alertData.title || '').toLowerCase();
+            const ip = alertData.ip || '';
+            const priority = alertData.priority || 'medium';
+            const device = alertData.device || '';
+            
             // Analyze threat indicators
-            if (alertData.title.toLowerCase().includes('malware')) {
+            if (title.includes('malware')) {
                 analysis.riskScore += 8;
                 analysis.indicators.push('Malware detected');
             }
-            if (alertData.title.toLowerCase().includes('suspicious login')) {
+            if (title.includes('suspicious login')) {
                 analysis.riskScore += 6;
                 analysis.indicators.push('Anomalous authentication pattern');
             }
-            if (alertData.title.toLowerCase().includes('phishing')) {
+            if (title.includes('phishing')) {
                 analysis.riskScore += 7;
                 analysis.indicators.push('Email-based threat vector');
             }
+            if (title.includes('data exfiltration') || title.includes('file transfer')) {
+                analysis.riskScore += 9;
+                analysis.indicators.push('Unauthorized data transfer');
+            }
             
             // IP analysis
-            if (alertData.ip.startsWith('10.0.') || alertData.ip.startsWith('192.168.')) {
+            if (ip.startsWith('10.0.') || ip.startsWith('192.168.')) {
                 analysis.riskScore += 2;
                 analysis.indicators.push('Internal network activity');
-            } else {
+            } else if (ip) {
                 analysis.riskScore += 4;
                 analysis.indicators.push('External IP address');
             }
             
             // Priority weight
-            if (alertData.priority === 'high') {
+            if (priority === 'high') {
                 analysis.riskScore += 3;
                 analysis.indicators.push('High priority classification');
-            } else if (alertData.priority === 'medium') {
+            } else if (priority === 'medium') {
                 analysis.riskScore += 2;
             }
             
             // Device analysis
-            if (alertData.device.includes('LAPTOP')) {
+            if (device.includes('LAPTOP')) {
                 analysis.riskScore += 1;
                 analysis.indicators.push('Mobile endpoint device');
             }
